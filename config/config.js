@@ -5,6 +5,7 @@
  */
 
 export default {
-  tokenA: '3fea5315abc8c04666ab',
-  tokenB: '431c23a9cf7de75e77de',
+  tokenA: 'githu',
+  tokenB: 'b_pat_11AMAAPCQ003s0CJtrVo4L',
+  tokenC: '_H9EwUoaADByxU20SItZRnQnJTQnTzxmqEvvPBj0cZtYYH3FYAZCSRa7rSlP'
 };
