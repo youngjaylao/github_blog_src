@@ -295,14 +295,50 @@ export default {
   .page-labels {
     .nav { margin-bottom: 24px;
       .name { font-size: $sizeNormal; width: 40px; height: 40px; background-color: #f0f0f0; border-radius: 50%; color: #555555; margin-right: 8px;}
-      .labels { flex-wrap: wrap; margin-left: 10px;
-        .label { font-size: $sizeSmall; color: #999999; padding: 0 12px; height: 32px; margin-right: 8px; margin-bottom: 8px; border-radius: 15px; background-color: #f6f6f6; transition: all 0.5s; cursor: pointer;
-          &.active, &:hover, &:active { color: $mainStrong; background-color: #f0f0f0;}
+      .labels {
+        flex-wrap: wrap;
+        gap: 8px; // 同步稍微缩小间距
+        margin-left: 12px;
+
+        .label {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+
+          height: 30px;               // 👈 缩小 20%
+          padding: 0 14px;            // 👈 缩小 20%
+          border-radius: 999px;
+
+          font-size: 12px;            // 👈 缩小 20%
+          font-weight: 500;
+          line-height: 1;
+          white-space: nowrap;
+
+          cursor: pointer;
+          user-select: none;
+
+          transition:
+            background-color 0.25s ease,
+            color 0.25s ease,
+            box-shadow 0.25s ease,
+            transform 0.15s ease;
+
+          // 默认态（阴影同步减弱）
+          box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+
+          &:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+          }
+
+          &.active {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+          }
         }
       }
     }
     .list .item {
-      &-name { position: relative; height: 32px;
+      &-name { position: relative; height: 32px; line-height: 1;
         p, strong { font-size: $sizeLarge; color: $mainStrong; }
         strong { margin-top: 8px;}
       }

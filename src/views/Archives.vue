@@ -18,7 +18,10 @@
                 target="_blank"
                 rel="noopener noreferrer"
               ></router-link>
-              <div class="others flex-item flex-end flex flex-middle">
+              <div class="labels">
+                <div class="label" v-for="label in archive.labels" :key="label.name" v-text="label.name" :style="{'background-color': `#${label.color}`, 'color': `${isLightColor(label.color) ? '#000000' : '#ffffff'}`}"></div>
+              </div>
+              <div class="others">
                 <i class="iconfont icon-comment"></i>
                 <span v-text="archive.comments.totalCount"></span>
               </div>
@@ -97,7 +100,7 @@
 </template>
 <script>
 import { ref, reactive, watch, onMounted } from '@vue/composition-api';
-import { formatTime, getZodiac } from '../utils/utils';
+import { formatTime, getZodiac, isLightColor } from '../utils/utils';
 
 export default {
   setup(props, context) {
@@ -172,7 +175,13 @@ export default {
             totalCount
             nodes {
               title, createdAt, number, bodyText,
-              comments(first: null) { totalCount }
+              comments(first: null) { totalCount },               
+              labels (first: 10) {
+                nodes {
+                  name
+                  color
+                }
+              }
             }
             pageInfo { endCursor, hasNextPage }
           }
@@ -204,6 +213,7 @@ export default {
               yearMap[year] = { year, archives: [] };
               yearGroups.push(yearMap[year]);
             }
+            archive.labels = archive.labels.nodes;
             yearMap[year].archives.push(archive);
           });
 
@@ -327,6 +337,7 @@ export default {
       clearSecretTimer,
       handleSecretClick,
       archives,
+      isLightColor
     };
   },
 };
@@ -365,7 +376,35 @@ export default {
             .archive-header {
               width: 100%;
               line-height: 32px; // 适当缩小行高，因为下面有正文
+              display: flex; // 确保是 flex 布局
+              align-items: center;
+              .labels {
+                display: flex; // 确保标签内部横向排列
+                flex-wrap: nowrap; // 既然是贴着标题，通常不希望换行
+                gap: 8px;
+                margin-left: 12px; // 标题和标签之间的间距
+                flex-shrink: 0;   // 防止标签被压缩
 
+                .label {
+                  display: inline-flex;
+                  align-items: center;
+                  justify-content: center;
+
+                  height: 30px;               // 👈 缩小 20%
+                  padding: 0 14px;            // 👈 缩小 20%
+                  border-radius: 999px;
+
+                  font-size: 12px;            // 👈 缩小 20%
+                  font-weight: 500;
+                  line-height: 1;
+                  white-space: nowrap;
+
+                  height: 24px; // 稍微对齐一下高度
+                  padding: 0 10px;
+                  font-size: 12px;
+
+                }
+              }
               .date {
                 font-size: $sizeSmall;
                 color: #888888;
@@ -374,7 +413,8 @@ export default {
               }
 
               .title {
-                flex: 1; // 标题占据剩余空间
+                flex: 0 1 auto;
+                max-width: 60%; // 限制标题最大宽度，防止挤掉标签
                 font-size: $sizeMedium;
                 font-weight: bold;
                 color: $mainStrong;
@@ -389,8 +429,12 @@ export default {
               }
 
               .others {
+                flex: 1; 
+                display: flex;
+                justify-content: flex-end; 
+                align-items: center;
                 color: #bbbbbb;
-                margin-left: 8px;
+                margin-left: 15px;
                 font-size: 13px;
 
                 i { font-size: 14px; }
