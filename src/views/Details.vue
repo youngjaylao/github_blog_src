@@ -55,6 +55,11 @@ export default {
     const showMobileToc = ref(false);
     const { id } = context.root.$route.params;
 
+    // 在获取到 ID 后立即存入本地存储
+    if (id) {
+      localStorage.setItem('last_issue_id', id);
+    }
+
     // 核心跳转逻辑：手动计算偏移量跳转
     const scrollToAnchor = (anchorId) => {
       const target = document.getElementById(anchorId);
@@ -107,11 +112,13 @@ export default {
     };
 
     const initComment = () => {
+      const currentId = id || context.root.$route.params.id;
+      if (!currentId) return; // 没有 ID 就不初始化评论，防止报错
       const utterances = document.createElement('script');
       utterances.type = 'text/javascript';
       utterances.async = true;
-      console.log('issue id:', id);
-      utterances.setAttribute('issue-number', parseInt(id, 10));
+      console.log('issue id:', currentId);
+      utterances.setAttribute('issue-number', parseInt(currentId, 10));
       utterances.setAttribute('theme', 'github-light');
       utterances.setAttribute('repo', 'Young-LAO/github_blog_src');
       utterances.crossorigin = 'anonymous';

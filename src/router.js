@@ -32,7 +32,11 @@ const router = new Router({
     {
       path: '*',
       beforeEnter: () => {
-        router.replace('/archives');
+        if (window.location.href.indexOf('utterances=') !== -1) {
+          next();
+        } else {
+          next('/archives');
+        }      
       },
     },
   ],
