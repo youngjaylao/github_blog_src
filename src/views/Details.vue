@@ -1,21 +1,11 @@
 <template>
   <div class="page-details">
-    <div 
-      class="custom-tooltip" 
-      v-show="tooltip.visible" 
-      :style="{ top: tooltip.top + 'px', left: tooltip.left + 'px' }"
-    >
-      {{ tooltip.text }}
-    </div>
     <div v-if="toc.length > 0" class="toc-container pc-only">
       <ul class="toc-list">
         <li v-for="(item, index) in toc" :key="index" :class="'toc-depth-' + item.level">
           <a 
             @click.prevent="scrollToAnchor(item.id)" 
             href="javascript:;" 
-            @mouseenter="showTooltip($event, item.text)"
-            @mousemove="moveTooltip($event)"
-            @mouseleave="hideTooltip"
             >{{ item.text }}</a>
         </li>
       </ul>
@@ -120,6 +110,7 @@ export default {
       const utterances = document.createElement('script');
       utterances.type = 'text/javascript';
       utterances.async = true;
+      console.log('issue id:', id);
       utterances.setAttribute('issue-number', parseInt(id, 10));
       utterances.setAttribute('theme', 'github-light');
       utterances.setAttribute('repo', 'Young-LAO/github_blog_src');
@@ -133,33 +124,7 @@ export default {
       getData();
       initComment();
     });
-    // --- 新增：自定义 Tooltip 逻辑 ---
-    const tooltip = reactive({
-      visible: false,
-      text: '',
-      top: 0,
-      left: 0
-    });
 
-    const showTooltip = (e, text) => {
-      tooltip.text = text;
-      tooltip.visible = true;
-      // 初始位置设置在鼠标右下方一点，防止遮挡
-      tooltip.top = e.clientY + 10;
-      tooltip.left = e.clientX + 10;
-    };
-
-    const moveTooltip = (e) => {
-      // 让提示框跟随鼠标移动 (可选，如果不需要跟随可去掉此函数)
-      if (tooltip.visible) {
-        tooltip.top = e.clientY + 10;
-        tooltip.left = e.clientX + 10;
-      }
-    };
-
-    const hideTooltip = () => {
-      tooltip.visible = false;
-    };
     // --------------------------------
 
     return { 
@@ -168,10 +133,7 @@ export default {
       toc, 
       scrollToAnchor, 
       showMobileToc, 
-      tooltip,
-      showTooltip,
-      hideTooltip,
-      moveTooltip };
+    };
   },
 };
 </script>
@@ -221,8 +183,20 @@ export default {
         margin: 8px 0;
         line-height: 1.4;
         a { 
-          color: #666; font-size: 13px; text-decoration: none; display: block;
-          white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+          color: #666; 
+          font-size: 13px; 
+          text-decoration: none; 
+          display: block;
+          
+          /* --- 修改部分 --- */
+          white-space: normal;      /* 允许换行 */
+          overflow: visible;        /* 允许内容溢出容器（即正常显示） */
+          text-overflow: clip;      /* 关闭省略号 */
+          word-break: break-all;    /* 强制长单词/链接换行（可选） */
+          line-height: 1.5;         /* 换行后增加行高，防止文字挤在一起 */
+          margin-bottom: 4px;       /* 增加间距 */
+          /* ---------------- */
+
           &:hover { color: #1abc9c; }
         }
         &.toc-depth-1 { font-weight: bold; }
@@ -258,7 +232,11 @@ export default {
     
     .toc-list { list-style: none;
       li { padding: 12px 0; border-bottom: 1px dashed #f0f0f0;
-        a { color: #333; text-decoration: none; display: block; }
+        a {
+          white-space: normal;      /* 确保移动端也会换行 */
+          word-wrap: break-word;
+          line-height: 1.6;
+        }
         &.toc-depth-3 { padding-left: 20px; font-size: 13px; color: #666; }
       }
     }
@@ -292,20 +270,5 @@ export default {
 .pc-mode .main-wrap:before {
   background-color: transparent !important; /* 或是 display: none */
 }
-/* 自定义 Tooltip 样式 */
-.custom-tooltip {
-  position: fixed; /* 使用 fixed 定位，基于视窗 */
-  z-index: 9999;   /* 确保在最上层 */
-  background-color: rgba(0, 0, 0, 0.85); /* 深色背景 */
-  color: #fff;
-  padding: 6px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  pointer-events: none; /* 关键：让鼠标事件穿透提示框，防止闪烁 */
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  
-  /* 可选：添加一点点过渡动画让出现更丝滑，但不要太慢 */
-  transition: opacity 0.1s; 
-}
+
 </style>

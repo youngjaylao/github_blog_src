@@ -17,7 +17,7 @@
           </a>
           <div class="flex-item">
             <h3>Young-LAO</h3>
-            <p>放下傲慢，拥抱市场</p>
+            <p>不求双确，只依标准；接纳风险，果断执行；旁观自省，拥抱概率。</p>
           </div>
         </div>
       </div>
