@@ -376,7 +376,8 @@ export default {
           .archive-header {
             width: 100%;
             line-height: 32px; // 适当缩小行高，因为下面有正文
-
+            display: flex; // 确保是 flex 布局
+            align-items: flex-start;
             .date {
               font-size: $sizeSmall;
               color: #888888;
@@ -385,14 +386,14 @@ export default {
             }
 
             .title {
-              flex: 1; // 标题占据剩余空间
+              flex: 0 1 auto;
               font-size: $sizeMedium;
               font-weight: bold;
               color: $mainStrong;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-              overflow: hidden;
+              white-space: normal;      // 允许正常换行
+              word-break: break-all;    // 确保长英文单词也能断开换行
               transition: all 0.5s;
+              line-height: 1.4;         // 换行后增加行高，防止文字挤在一起
 
               &:hover {
                 color: #1abc9c;
@@ -400,8 +401,12 @@ export default {
             }
 
             .others {
+              flex: 1; 
+              display: flex;
+              justify-content: flex-end; 
+              align-items: center;
               color: #bbbbbb;
-              margin-left: 8px;
+              margin-left: 15px;
               font-size: 13px;
 
               i { font-size: 14px; }
