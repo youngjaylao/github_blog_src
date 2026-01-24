@@ -16,7 +16,10 @@
             <img src="img/avatar.png" alt="">
           </a>
           <div class="flex-item">
-            <h3>Young-LAO</h3>
+            <div class="profile-header">
+              <span class="username">youngjaylao</span>
+              <span class="display-name">YoungJay LAO</span>
+            </div>
             <p>不求双确，只依标准；接纳风险，果断执行；旁观自省，拥抱概率。</p>
           </div>
         </div>
@@ -277,15 +280,41 @@ export default {
 
     .header .info {
       margin-top: 0;
+      display: flex;
+      align-items: center; 
+      text-align: center; // 让 p 标签内的文字也居中
+      flex-direction: column;
 
       .avatar {
         margin-left: auto;
         margin-right: auto;
       }
-
-      h3 {
-        margin: 16px 0 4px;
+      .flex-item {
+        width: 100%; // 撑满宽度以便内容居中
       }
+
+      .profile-header {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        display: flex;
+        gap: 15px; /* 两个名字之间的间距 */
+        justify-content: center;
+        align-items: center;
+        line-height: 1.5;
+        margin-bottom: 8px; // 名字和下面介绍的间距
+        .username {
+          font-weight: 700; /* 加粗 */
+          color: #262626;  /* 深色/黑色 */
+          font-size: 22px;
+        }
+
+        .display-name {
+          font-weight: 400; /* 常规粗细 */
+          color: #8e8e8e;  /* 灰色 */
+          font-size: 22px;
+        }
+      }
+
+
     }
   }
 
@@ -391,11 +420,27 @@ export default {
         }
       }
 
-      h3 {
-        font-weight: bold;
-        font-size: 24px;
+
+      .profile-header {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        display: flex;
+        gap: 15px; /* 两个名字之间的间距 */
+        justify-content: flex-start; /* 确保 PC 端靠左 */
+        text-align: left;
+        align-items: center;
         line-height: 1.5;
-        transition: all $animateTime;
+        margin-bottom: 8px; // 名字和下面介绍的间距
+        .username {
+          font-weight: 700; /* 加粗 */
+          color: #262626;  /* 深色/黑色 */
+          font-size: 22px;
+        }
+
+        .display-name {
+          font-weight: 400; /* 常规粗细 */
+          color: #8e8e8e;  /* 灰色 */
+          font-size: 22px;
+        }
       }
 
       p {

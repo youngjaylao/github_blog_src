@@ -31,12 +31,8 @@ const router = new Router({
     },
     {
       path: '*',
-      beforeEnter: () => {
-        if (window.location.href.indexOf('utterances=') !== -1) {
-          next();
-        } else {
-          next('/archives');
-        }      
+      beforeEnter: (to, from, next) => {
+        next('/archives'); 
       },
     },
   ],

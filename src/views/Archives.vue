@@ -177,7 +177,7 @@ export default {
 
       const cursor = archives.cursors[page - 1];
       const query = `query {
-        repository(owner: "Young-LAO", name: "github_blog_src") {
+        repository(owner: "youngjaylao", name: "github_blog_src") {
           issues(
             orderBy: {field: CREATED_AT, direction: DESC},
             first: ${archives.pageSize},
@@ -292,7 +292,7 @@ export default {
       }
 
       const query = `query {
-        repository(owner: "Young-LAO", name: "github_blog_src") {
+        repository(owner: "youngjaylao", name: "github_blog_src") {
           issues(
             orderBy: {field: CREATED_AT, direction: DESC},
             first: ${archives.pageSize},

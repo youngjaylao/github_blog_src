@@ -113,7 +113,7 @@ export default {
       }
 
       const query = `query {
-        repository(owner: "Young-LAO", name: "github_blog_src") {
+        repository(owner: "youngjaylao", name: "github_blog_src") {
           issues(
             filterBy: {labels: "${archives.label}"}, 
             orderBy: {field: CREATED_AT, direction: DESC}, 
@@ -161,7 +161,7 @@ export default {
     const getLabels = () => {
       $loading.show('查询标签中...');
       const query = `query {
-        repository(owner: "Young-LAO", name: "github_blog_src") {
+        repository(owner: "youngjaylao", name: "github_blog_src") {
           labels(first: 100) { nodes { name, color } }
         }
       }`;
@@ -260,7 +260,7 @@ export default {
           return;
         }
         const q = `query {
-          repository(owner: "Young-LAO", name: "github_blog_src") {
+          repository(owner: "youngjaylao", name: "github_blog_src") {
             issues(filterBy: {labels: "${archives.label}"}, first: ${archives.pageSize}, after: ${currentCursor ? `"${currentCursor}"` : null}) {
               pageInfo { endCursor }
             }

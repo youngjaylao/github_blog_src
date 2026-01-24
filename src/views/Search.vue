@@ -184,7 +184,7 @@ export default {
       const queryKeyword = safeSearch;
       const query = `query {
         search(
-          query: "${queryKeyword} repo:Young-LAO/github_blog_src",
+          query: "${queryKeyword} repo:youngjaylao/github_blog_src",
           type: ISSUE,
           first: 10,
           after: ${this.archives.cursor}

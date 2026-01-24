@@ -94,7 +94,7 @@ export default {
     const getData = () => {
       context.root.$loading.show('努力为您查询');
       const query = `query {
-          repository(owner: "Young-LAO", name: "github_blog_src") {
+          repository(owner: "youngjaylao", name: "github_blog_src") {
             issue(number: ${id}) {
               title
               bodyHTML
@@ -120,7 +120,7 @@ export default {
       console.log('issue id:', currentId);
       utterances.setAttribute('issue-number', parseInt(currentId, 10));
       utterances.setAttribute('theme', 'github-light');
-      utterances.setAttribute('repo', 'Young-LAO/github_blog_src');
+      utterances.setAttribute('repo', 'youngjaylao/github_blog_src');
       utterances.crossorigin = 'anonymous';
       utterances.src = 'https://utteranc.es/client.js';
       const container = document.getElementById('comment');
