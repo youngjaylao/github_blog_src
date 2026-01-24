@@ -28,7 +28,10 @@ Vue.prototype.$loading = Loading;
       var queryString = urlParts.length > 1 ? urlParts[1].split('#')[0] : '';
       
       // 3. 构造完美的跳转地址
-      var newUrl = window.location.origin + window.location.pathname + '?' + queryString + '#/archives/' + lastId;
+      var curPath = window.location.pathname;
+
+      curPath = curPath.replace(/\/+$/, '');
+      var newUrl = window.location.origin + curPath + '?' + queryString + '#/archives/' + lastId;
       
       // 4. 暴力跳转并彻底阻止后续 Vue 渲染
       window.location.replace(newUrl);

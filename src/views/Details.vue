@@ -36,7 +36,7 @@
     <div class="content-wrapper">
       <h4 class="title" v-text="issue.title"></h4>
       <div class="labels flex flex-middle">
-        <div class="label" v-for="label in issue.labels" :key="label.name" v-text="label.name" :style="{'background-color': `#${label.color}`, 'color': `${isLightColor(label.color) ? '#000000' : '#ffffff'}`}"></div>
+        <div class="label" v-for="label in issue.labels" :key="label.name" v-text="label.name" :style="{'background-color': `#${label.color}`, 'color': `${isLightColor(label.color) ? '#000000' : '#ffffff'}`}" @click="goToLabelPage(label.name)"></div>
       </div>
       <div class="markdown-body" v-html="issue.bodyHTML"></div>
       <div id="comment"></div>
@@ -132,7 +132,15 @@ export default {
       initComment();
     });
 
-    // --------------------------------
+    // 新增跳转方法
+    const goToLabelPage = (labelName) => {
+      // 方案 A: 如果你想在当前页面跳转
+      context.root.$router.push({ path: '/labels', query: { label: labelName, page: 1 } });
+
+      // 方案 B: 按照你的要求，在新标签页打开
+      // const url = `${window.location.origin}${window.location.pathname}#/labels?label=${encodeURIComponent(labelName)}&page=1`;
+      // window.open(url, '_blank');
+    };
 
     return { 
       isLightColor, 
@@ -140,6 +148,7 @@ export default {
       toc, 
       scrollToAnchor, 
       showMobileToc, 
+      goToLabelPage,
     };
   },
 };
@@ -254,12 +263,32 @@ export default {
   .title { font-size: 24px; font-weight: bold; color: #2c3e50; }
   .labels { margin: 15px 0 25px; 
     .label { 
-      padding: 4px 15px;      /* 1. 稍微增加左右内边距，让胶囊更修长 */
+      padding: 9px 15px;      /* 1. 稍微增加左右内边距，让胶囊更修长 */
       border-radius: 50px;    /* 2. 核心：设置大圆角变为胶囊形状 */
       margin-right: 10px;     /* 3. 适当调整间距 */
       font-size: 12px;
       font-weight: 500;       /* 4. 可选：加粗一点点更美观 */
       display: inline-block;  /* 确保边距生效 */
+      cursor: pointer;
+      user-select: none;
+
+      transition:
+        background-color 0.25s ease,
+        color 0.25s ease,
+        box-shadow 0.25s ease,
+        transform 0.15s ease;
+
+      // 默认态（阴影同步减弱）
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+      }
+
+      &.active {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+      }
     } 
   }
 }

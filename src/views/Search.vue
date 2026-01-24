@@ -14,9 +14,6 @@
       
     </div>
 
-    <div class="tips" v-if="archives.totalCount">
-      <p>共 {{ archives.totalCount }} 条搜索结果</p>
-    </div>
 
     <ul class="archives">
       <li
@@ -45,6 +42,7 @@
                 'background-color': `#${label.color}`, 
                 'color': `${isLightColor(label.color) ? '#000000' : '#ffffff'}`
               }"
+              @click="goToLabelPage(label.name)"
             ></div>
           </div>
 
@@ -106,6 +104,14 @@ export default {
   methods: {
     formatTime,
     isLightColor,
+    goToLabelPage(labelName) {
+      // 方案 A: 如果你想在当前页面跳转
+      // context.root.$router.push({ path: '/labels', query: { label: labelName, page: 1 } });
+
+      // 方案 B: 按照你的要求，在新标签页打开
+      const url = `${window.location.origin}${window.location.pathname}#/labels?label=${encodeURIComponent(labelName)}&page=1`;
+      window.open(url, '_blank');
+    },
     
     // 关键词高亮逻辑
     highlight(text) {
@@ -384,6 +390,27 @@ export default {
               font-size: 12px;
               font-weight: 500;
               white-space: nowrap;
+
+              cursor: pointer;
+              user-select: none;
+
+              transition:
+                background-color 0.25s ease,
+                color 0.25s ease,
+                box-shadow 0.25s ease,
+                transform 0.15s ease;
+
+              // 默认态（阴影同步减弱）
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+
+              &:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+              }
+
+              &.active {
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+              }
             }
           }
 

@@ -18,8 +18,7 @@
     <div class="list">
       <div class="item">
         <div class="item-name flex flex-middle" v-if="archives.label">
-          <p v-text="archives.label"></p>
-          <strong class="font-clg" v-text="`( ${archives.totalCount} )`"></strong>
+          <strong v-text="`共( ${archives.totalCount} )篇`"></strong>
         </div>
         <ul class="archives">
           <li class="archive flex flex-middle" v-for="archive in archives.list" :key="archive.number">
@@ -290,6 +289,17 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+  @keyframes label-glow {
+    0% { 
+      box-shadow: 0 0 0 2px #000, 0 4px 12px rgba(0, 0, 0, 0.16); 
+    }
+    50% { 
+      box-shadow: 0 0 0 3px #000, 0 6px 20px rgba(0, 0, 0, 0.25); 
+    }
+    100% { 
+      box-shadow: 0 0 0 2px #000, 0 4px 12px rgba(0, 0, 0, 0.16); 
+    }
+  }
   /* 样式完全保留并合并 Archives 的分页按钮样式 */
   .pc-mode .page-labels .nav .name { margin-left: -18px; }
   .page-labels {
@@ -297,7 +307,7 @@ export default {
       .name { font-size: $sizeNormal; width: 40px; height: 40px; background-color: #f0f0f0; border-radius: 50%; color: #555555; margin-right: 8px;}
       .labels {
         flex-wrap: wrap;
-        gap: 8px; // 同步稍微缩小间距
+        gap: 13px; // 同步稍微缩小间距
         margin-left: 12px;
 
         .label {
@@ -321,18 +331,31 @@ export default {
             background-color 0.25s ease,
             color 0.25s ease,
             box-shadow 0.25s ease,
+            cubic-bezier(0.175, 0.885, 0.32, 1.275),
             transform 0.15s ease;
 
           // 默认态（阴影同步减弱）
           box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 
-          &:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+          &:hover:not(.active) {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
           }
 
           &.active {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+            padding: 0 20px;
+            transform: scale(1.15); // 放大 15%
+            z-index: 10; // 确保放大时图层在最上方
+            font-weight: bold;
+            letter-spacing: 0.5px; // 文字稍微撑开一点，更有质感
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            // 触发呼吸动画：持续 3 秒，无限循环，平滑过渡
+            animation: label-glow 3s infinite ease-in-out;
+            // --- 关键修改：添加黑色线条 ---
+            outline: 2px solid #000000; // 使用 outline 不占据空间
+            outline-offset: 1px;        // 线条与标签之间留一点点呼吸间隙，更好看
+            // ---------------------------
+            
           }
         }
       }

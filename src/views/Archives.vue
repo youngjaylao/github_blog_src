@@ -19,7 +19,7 @@
                 rel="noopener noreferrer"
               ></router-link>
               <div class="labels">
-                <div class="label" v-for="label in archive.labels" :key="label.name" v-text="label.name" :style="{'background-color': `#${label.color}`, 'color': `${isLightColor(label.color) ? '#000000' : '#ffffff'}`}"></div>
+                <div class="label" v-for="label in archive.labels" :key="label.name" v-text="label.name" :style="{'background-color': `#${label.color}`, 'color': `${isLightColor(label.color) ? '#000000' : '#ffffff'}`}" @click="goToLabelPage(label.name)"></div>
               </div>
               <div class="others">
                 <i class="iconfont icon-comment"></i>
@@ -123,6 +123,15 @@ export default {
     const goFirstPage = () => {
       if (archives.page === 1) return;
       $router.push({ query: { ...$route.query, page: 1 } }).catch(() => {});
+    };
+    // 新增跳转方法
+    const goToLabelPage = (labelName) => {
+      // 方案 A: 如果你想在当前页面跳转
+      // context.root.$router.push({ path: '/labels', query: { label: labelName, page: 1 } });
+
+      // 方案 B: 按照你的要求，在新标签页打开
+      const url = `${window.location.origin}${window.location.pathname}#/labels?label=${encodeURIComponent(labelName)}&page=1`;
+      window.open(url, '_blank');
     };
 
     const goLastPage = () => {
@@ -338,7 +347,8 @@ export default {
       clearSecretTimer,
       handleSecretClick,
       archives,
-      isLightColor
+      isLightColor,
+      goToLabelPage,
     };
   },
 };
@@ -378,7 +388,7 @@ export default {
               width: 100%;
               line-height: 32px; // 适当缩小行高，因为下面有正文
               display: flex; // 确保是 flex 布局
-              align-items: center;
+              align-items: flex-start;
               .labels {
                 display: flex; // 确保标签内部横向排列
                 flex-wrap: nowrap; // 既然是贴着标题，通常不希望换行
@@ -404,6 +414,27 @@ export default {
                   padding: 0 10px;
                   font-size: 12px;
 
+                  cursor: pointer;
+                  user-select: none;
+
+                  transition:
+                    background-color 0.25s ease,
+                    color 0.25s ease,
+                    box-shadow 0.25s ease,
+                    transform 0.15s ease;
+
+                  // 默认态（阴影同步减弱）
+                  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+
+                  &:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.12);
+                  }
+
+                  &.active {
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+                  }
+
                 }
               }
               .date {
@@ -419,10 +450,12 @@ export default {
                 font-size: $sizeMedium;
                 font-weight: bold;
                 color: $mainStrong;
-                text-overflow: ellipsis;
-                white-space: nowrap;
-                overflow: hidden;
                 transition: all 0.5s;
+
+                /* 核心修改：允许换行 */
+                white-space: normal;      // 允许正常换行
+                word-break: break-all;    // 确保长英文单词也能断开换行
+                line-height: 1.4;         // 换行后增加行高，防止文字挤在一起
 
                 &:hover {
                   color: #1abc9c;
