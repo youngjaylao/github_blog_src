@@ -106,7 +106,7 @@ export default {
         const { title, bodyHTML, labels } = res.repository.issue;
         issue.title = title;
         issue.labels = labels.nodes;
-        document.title = `${title} - LAO Blog`;
+        document.title = `${title} - 漾际资本（YoungJay Capital Ltd.）`;
         generateTOC(bodyHTML); // 生成目录并补全ID
       });
     };

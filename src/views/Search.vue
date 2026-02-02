@@ -94,7 +94,7 @@ export default {
     };
   },
   created() {
-    document.title = `搜索 - LAO Blog`;
+    document.title = `搜索 - 漾际资本（YoungJay Capital Ltd.）`;
     this.onInputDebounced = debounce(this.onInput, 300);
     this.segmentit = new Segment();
     this.segmentit.use(useDefault);
@@ -256,7 +256,7 @@ export default {
           this.archives.none = true;
         }
 
-        document.title = `${this.search} - 搜索 - LAO Blog`;
+        document.title = `${this.search} - 搜索 - 漾际资本（YoungJay Capital Ltd.）`;
       }).catch(err => {
         console.error(err);
         this.archives.loading = false;

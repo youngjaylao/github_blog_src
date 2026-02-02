@@ -56,7 +56,7 @@ router.afterEach((to) => {
   }
   
   // 3. 合成最终标题
-  document.title = "LAO Blog";
+  document.title = "漾际资本（YoungJay Capital Ltd.）";
   if (window._hmt) {
     const path = to.fullPath;
     window._hmt.push(['_trackPageview', path]);

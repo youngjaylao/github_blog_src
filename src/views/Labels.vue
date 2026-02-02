@@ -90,7 +90,7 @@ export default {
       labels: [],
       label: null,
       page: 1,
-      pageSize: 5,
+      pageSize: 10,
       cursors: [null],
       loading: false,
       none: false,
@@ -201,7 +201,7 @@ export default {
           // 2. 更新页码
           archives.page = newPage;
           jumpPage.value = newPage;
-          document.title = `第${newPage}页 - ${newQuery.label} - 标签 - LAO Blog`;
+          document.title = `第${newPage}页 - ${newQuery.label} - 标签 - 漾际资本（YoungJay Capital Ltd.）`;
 
           // 3. 执行数据请求
           getData();

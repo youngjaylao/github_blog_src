@@ -112,7 +112,7 @@ export default {
     const archives = reactive({
       years: [],
       page: initialPage,
-      pageSize: 5,
+      pageSize: 10,
       cursors: [null], 
       loading: false,
       none: false,
@@ -164,7 +164,7 @@ export default {
     // 同步页码：当通过路由/按钮翻页时，更新输入框数字
     watch(() => archives.page, (newVal) => {
       jumpPage.value = newVal;
-      document.title = `第${newVal}页 - 博客 - LAO Blog`;
+      document.title = `第${newVal}页 - 博客 - 漾际资本（YoungJay Capital Ltd.）`;
     });
     const getData = (page = archives.page) => {
       if (page > 1 && !archives.cursors[page - 1]) {

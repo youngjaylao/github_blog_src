@@ -17,8 +17,8 @@
           </a>
           <div class="flex-item">
             <div class="profile-header">
-              <span class="username">youngjaylao</span>
-              <span class="display-name">YoungJay LAO</span>
+              <span class="username">YoungJay LAO</span>
+              <span class="display-name">漾际资本（YoungJay Capital Ltd.）</span>
             </div>
             <p>不求双确，只依标准；接纳风险，果断执行；旁观自省，拥抱概率。</p>
           </div>
@@ -296,9 +296,9 @@ export default {
       .profile-header {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         display: flex;
-        gap: 15px; /* 两个名字之间的间距 */
+        gap: 18px; /* 两个名字之间的间距 */
         justify-content: center;
-        align-items: center;
+        align-items: baseline;
         line-height: 1.5;
         margin-bottom: 8px; // 名字和下面介绍的间距
         .username {
@@ -310,7 +310,7 @@ export default {
         .display-name {
           font-weight: 400; /* 常规粗细 */
           color: #8e8e8e;  /* 灰色 */
-          font-size: 22px;
+          font-size: 10px;
         }
       }
 
@@ -427,7 +427,7 @@ export default {
         gap: 15px; /* 两个名字之间的间距 */
         justify-content: flex-start; /* 确保 PC 端靠左 */
         text-align: left;
-        align-items: center;
+        align-items: baseline;
         line-height: 1.5;
         margin-bottom: 8px; // 名字和下面介绍的间距
         .username {
@@ -439,7 +439,7 @@ export default {
         .display-name {
           font-weight: 400; /* 常规粗细 */
           color: #8e8e8e;  /* 灰色 */
-          font-size: 22px;
+          font-size: 10px;
         }
       }
 
