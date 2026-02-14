@@ -1,6 +1,5 @@
 import Loading from '../components/loading/loading';
 
-// 替换为你自己的 Cloudflare Worker 地址
 const endpoint = 'https://github-blog-proxy.laoyanjie666.workers.dev'; 
 
 const Http = (query = {}, variables = {}, alive = false) => {
@@ -8,13 +7,14 @@ const Http = (query = {}, variables = {}, alive = false) => {
     fetch(endpoint, {
       method: 'POST',
       headers: {
+        // 保持你要求的特定 Content-Type
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'X-Requested-With': 'XMLHttpRequest'
       },
-      // 将 GraphQL 的 query 和 variables 传给 Worker
+      // 这里的 body 依然按你之前的逻辑传 JSON 串
       body: JSON.stringify({ query: query, variables: variables }),
     })
     .then(function(response) {
-      // 检查网络响应状态
       if (!response.ok) {
         throw new Error('Network response was not ok');
       }
@@ -24,17 +24,17 @@ const Http = (query = {}, variables = {}, alive = false) => {
       if (!alive) {
         Loading.hide();
       }
-      
-      // GraphQL 的错误通常在 res.errors 中返回
+      // 适配你的逻辑：成功返回 res.data，失败 reject res.errors
       if (res.errors) {
         reject(res.errors);
       } else {
-        // 返回 res.data 以保持与原有 GraphQLClient 行为一致
         resolve(res.data);
       }
     })
     .catch(function(error) {
-      Loading.hide();
+      if (!alive) {
+        Loading.hide();
+      }
       reject(error);
     });
   });
