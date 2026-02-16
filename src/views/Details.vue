@@ -35,8 +35,11 @@
 
     <div class="content-wrapper">
       <h4 class="title" v-text="issue.title"></h4>
-      <div class="labels flex flex-middle">
-        <div class="label" v-for="label in issue.labels" :key="label.name" v-text="label.name" :style="{'background-color': `#${label.color}`, 'color': `${isLightColor(label.color) ? '#000000' : '#ffffff'}`}" @click="goToLabelPage(label.name)"></div>
+      <div class="labels-row flex flex-between flex-middle">
+        <div class="labels flex flex-middle">
+          <div class="label" v-for="label in issue.labels" :key="label.name" v-text="label.name" :style="{'background-color': `#${label.color}`, 'color': `${isLightColor(label.color) ? '#000000' : '#ffffff'}`}" @click="goToLabelPage(label.name)"></div>
+        </div>
+        <div class="date" v-text="formatTime(issue.createdAt, 'yyyy-MM-dd')"></div>
       </div>
       <div class="markdown-body" v-html="issue.bodyHTML"></div>
       <div id="comment"></div>
@@ -50,7 +53,7 @@ import { isLightColor, formatTime } from '../utils/utils';
 
 export default {
   setup(props, context) {
-    const issue = reactive({ title: '', bodyHTML: '', labels: [] });
+    const issue = reactive({ title: '', bodyHTML: '', labels: [], createdAt: null });
     const toc = ref([]);
     const showMobileToc = ref(false);
     const { id } = context.root.$route.params;
@@ -97,14 +100,16 @@ export default {
           repository(owner: "youngjaylao", name: "github_blog_src") {
             issue(number: ${id}) {
               title
+              createdAt
               bodyHTML
               labels (first: 10) { nodes { name color } }
             }
           }
         }`;
       context.root.$http(query).then((res) => {
-        const { title, bodyHTML, labels } = res.repository.issue;
+        const { title, createdAt, bodyHTML, labels } = res.repository.issue;
         issue.title = title;
+        issue.createdAt = createdAt;
         issue.labels = labels.nodes;
         document.title = `${title} - 漾际资本（YoungJay Capital Ltd.）`;
         generateTOC(bodyHTML); // 生成目录并补全ID
@@ -143,6 +148,7 @@ export default {
     };
 
     return { 
+      formatTime,
       isLightColor, 
       issue, 
       toc, 
@@ -180,6 +186,12 @@ export default {
     justify-content: flex-start;
     position: relative;
     padding-left: 100px; /* 为左侧目录腾出固定空间 */
+    .date {
+      font-size: $sizeSmall;
+      color: #888888;
+      white-space: nowrap;
+      margin-right: 12px; // 增加间距
+    }
   }
 
   .toc-container {
@@ -261,7 +273,18 @@ export default {
 
 .page-details {
   .title { font-size: 24px; font-weight: bold; color: #2c3e50; }
-  .labels { margin: 15px 0 25px; 
+  // 新增/修改这个容器
+  .labels-row {
+    margin: 15px 0 25px;
+    display: flex;
+    justify-content: space-between; // 核心：左右撑开
+    align-items: center;           // 垂直居中
+  }
+  .labels { 
+    margin: 0; 
+    display: flex;
+    flex-wrap: wrap; // 标签多了自动换行
+    gap: 10px;       // 标签之间的间距
     .label { 
       padding: 9px 15px;      /* 1. 稍微增加左右内边距，让胶囊更修长 */
       border-radius: 50px;    /* 2. 核心：设置大圆角变为胶囊形状 */
@@ -290,6 +313,12 @@ export default {
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
       }
     } 
+  }
+  .date {
+    font-size: $sizeSmall;
+    color: #888888;
+    white-space: nowrap;
+    margin-right: 12px; // 增加间距
   }
 }
 
