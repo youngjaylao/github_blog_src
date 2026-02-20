@@ -8,6 +8,9 @@
               <router-link class="nav-item flex flex-middle flex-center" :to="nav.path" v-for="(nav, index) in navs" :key="index">
                 <span v-text="nav.name"></span>
               </router-link>
+              <a class="nav-item flex flex-middle flex-center login-btn" :class="{ 'logged-in': isLoggedIn }" :href="getLoginUrl()">
+                <i class="iconfont"></i> 
+              </a>
             </div>
           </div>
         </template>
@@ -47,6 +50,9 @@
               <a class="nav-item flex flex-middle flex-center" href="javascript:;" v-for="(nav, index) in navs" :key="index" @click="clickNav(nav.path)">
                 <span v-text="nav.name"></span>
               </a>
+              <a class="nav-item flex flex-middle flex-center login-btn" :class="{ 'logged-in': isLoggedIn }" :href="getLoginUrl()">
+                <i class="iconfont"></i>
+              </a>
             </div>
           </div>
         </transition>
@@ -62,7 +68,7 @@
 </template>
 <script>
 import {
-  ref, reactive, watch, onBeforeUnmount,
+  ref, reactive, watch, onBeforeUnmount, onMounted, nextTick
 } from '@vue/composition-api';
 import {
   debounce, throttle, pageUnlock, pageLock,
@@ -86,6 +92,93 @@ export default {
       name: ref(''),
       showModal: false,
       scrollH: 0,
+    });
+
+    const isLoggedIn = ref(false);
+    const endpoint = 'https://github-blog-proxy.laoyanjie666.workers.dev';
+    const blogBaseUrl = 'https://youngjaylao.github.io/github_blog_src';  // 如果你的仓库名是 github_blog_src
+
+    const getLoginUrl = () => {
+      // fullPath 通常是 /archives
+      let currentPath = context.root.$route.fullPath;
+
+      
+      // 拼接成完整 URL
+      const fullReturnTo = blogBaseUrl + "#" + currentPath;
+      
+      // 编码后传给 Worker
+      return `${endpoint}/login?return_to=${encodeURIComponent(fullReturnTo)}`;
+    };
+    // 从 localStorage 读状态（供其他地方调用，如 toggleModal）
+    const checkAuthStatusFromStorage = () => {
+      const stored = localStorage.getItem('blog_logged_in');
+      console.log('Checking auth status from storage, raw value:', stored);
+      if (!stored) {
+        isLoggedIn.value = false;
+        return;
+      }
+
+      try {
+        const data = JSON.parse(stored);
+        
+        if (data.isLoggedIn && Date.now() <= data.exp) {
+          isLoggedIn.value = true;
+        } else {
+          isLoggedIn.value = false;
+          localStorage.removeItem('blog_logged_in'); // 过期清理
+        }
+      } catch (e) {
+        isLoggedIn.value = false;
+        localStorage.removeItem('blog_logged_in');
+      }
+    };
+
+
+    onMounted(() => {
+
+      let hash = window.location.hash;
+
+      // 解析 hash 中的 query 参数
+      const hashParts = hash.split('?');
+      const pathPart = hashParts[0] || '#/';  // #/archives
+      let queryString = hashParts[1] || '';  // blog_login=success&exp=...&other=xxx
+
+
+      if (queryString) {
+        const urlParams = new URLSearchParams(queryString);
+        const loginSuccess = urlParams.get('blog_login');
+        const exp = urlParams.get('exp');
+
+        if (loginSuccess === 'success' && exp && Number(exp) > Date.now()) {
+          localStorage.setItem('blog_logged_in', JSON.stringify({
+            isLoggedIn: true,
+            exp: Number(exp)
+          }));
+        }
+
+        // 只删除 blog_login 和 exp
+        urlParams.delete('blog_login');
+        urlParams.delete('exp');
+
+        // 重新生成 query 字符串（如果还有其他参数，保留）
+        const newQuery = urlParams.toString();
+
+        // 拼接新的 hash
+        let newHash = newQuery ? `${pathPart}?${newQuery}` : pathPart;
+        if (newHash.startsWith('#')) {
+          newHash = newHash.slice(1); // 去掉开头的 #
+        }
+        
+        context.root.$router.replace(newHash || '/')
+          .then(() => {
+          })
+          .catch(err => {
+            if (err.name !== 'NavigationDuplicated') console.error(err);
+          });
+
+      }
+      checkAuthStatusFromStorage();
+
     });
 
     const setMode = () => {
@@ -125,7 +218,10 @@ export default {
 
     const toggleModal = () => {
       global.showModal = !global.showModal;
+      
       if (global.showModal) {
+        // 关键在这里：每次弹窗打开都重新读 storage
+        checkAuthStatusFromStorage();
         pageLock();
       } else {
         pageUnlock();
@@ -155,6 +251,8 @@ export default {
       clickNav,
       toggleModal,
       backTop,
+      isLoggedIn,
+      getLoginUrl
     };
   },
 };
@@ -595,5 +693,14 @@ export default {
     .markdown-body {
       padding: 20px 0;
     }
+  }
+  /* 添加登录按钮样式 */
+  .nav-item.login-btn {
+    background-color: #f0f0f0; /* 灰色 */
+    color: #555555;
+  }
+
+  .nav-item.login-btn.logged-in {
+    background-color: #218845; /* 淡绿色，例如 lightgreen */
   }
 </style>

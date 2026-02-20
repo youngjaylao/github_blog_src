@@ -15,6 +15,49 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
+    // ── 4. 认证状态检查 ──
+    if (pathname === "/auth-status" && request.method === "GET") {
+      let isAuthorized = false;
+
+      // 检查 cookie（复用验证逻辑）
+      const cookieHeader = request.headers.get("Cookie") || "";
+      let authCookie = null;
+      console.log('1');
+
+      var cookies = cookieHeader.split(";");
+      for (var i = 0; i < cookies.length; i++) {
+        var cookie = cookies[i].trim();
+        if (cookie.indexOf("blog_auth=") === 0) {
+          authCookie = cookie.substring("blog_auth=".length);
+          break;
+        }
+      }
+      console.log('2');
+      if (authCookie) {
+        const parts = authCookie.split(".");
+        if (parts.length === 2) {
+          const payloadB64 = parts[0];
+          const payload = atob(payloadB64);
+          console.log('payload:', payload);
+
+          let session;
+          try {
+            session = JSON.parse(payload);
+          } catch (e) {
+            session = null;
+          }
+
+          if (session && session.user === "youngjaylao" && Date.now() <= session.exp) {
+            isAuthorized = true;
+          }
+        }
+      }
+      console.log('3');
+      return new Response(JSON.stringify({ isAuthorized }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
     // ── 1. 登录入口 ──
     if (pathname === "/login") {
       if (request.method !== "GET") {
@@ -22,13 +65,19 @@ export default {
       }
 
       // 生成随机 state 防 CSRF（这里简单用 randomUUID，如果你的环境不支持可换成 Date.now() + Math.random()）
-      const state = crypto.randomUUID ? crypto.randomUUID() : (Date.now() + Math.random()).toString();
+      const returnTo = url.searchParams.get("return_to") || "https://youngjaylao.github.io/github_blog_src/#/archives"; // 默认回首页
+      // state = csrf_token + | + return_to（用 | 分隔，简单且不易冲突）
+
+      const csrfSecret = env.BLOG_SESSION_SECRET; // 你的密钥
+      const csrfPayload = Date.now() + "." + Math.random().toString(36).slice(2); // 时间戳 + 随机
+      const hmac = await simpleHmacSign(csrfPayload, csrfSecret);
+      const state = csrfPayload + "." + hmac + "|" + encodeURIComponent(returnTo);
 
       const authUrl = "https://github.com/login/oauth/authorize?" +
         "client_id=" + env.GITHUB_CLIENT_ID +
         "&redirect_uri=" + encodeURIComponent(url.origin + "/callback") +
         "&scope=user" +
-        "&state=" + state;
+        "&state=" + encodeURIComponent(state);
 
       return Response.redirect(authUrl, 302);
     }
@@ -36,8 +85,12 @@ export default {
     // ── 2. OAuth 回调 ──
     if (pathname === "/callback") {
       const code = url.searchParams.get("code");
+      const receivedState = url.searchParams.get("state");
       if (!code) {
         return new Response("No code received", { status: 400, headers: corsHeaders });
+      }
+      if (!receivedState) {
+        return new Response("Missing state parameter - possible CSRF", { status: 403, headers: corsHeaders });
       }
 
       // 交换 code 拿 access_token
@@ -75,25 +128,60 @@ export default {
       if (user.login !== "youngjaylao") {  // 只允许你自己
         return new Response("Access denied: only youngjaylao allowed", { status: 403, headers: corsHeaders });
       }
+      const expTimeGap = 14 * 86400000; // 14天
 
       // 设置 session cookie（简单版：payload + 签名）
       const payload = JSON.stringify({
         user: "youngjaylao",
-        exp: Date.now() + 14 * 86400000  // 14天
+        exp: Date.now() + expTimeGap  // 14天
       });
 
       const signature = await simpleHmacSign(payload, env.BLOG_SESSION_SECRET);
       const cookieValue = btoa(payload) + "." + signature;
 
+      // 从 state 解析并验证 return_to
+      let returnTo = "https://youngjaylao.github.io/github_blog_src/#/archives";  // 默认回博客首页完整 URL
+      try {
+        // 防止csrf攻击，验证 state 中的 HMAC 和时间戳 
+        const [csrfPart, encodedReturnTo] = receivedState.split("|");
+        if (!csrfPart || !encodedReturnTo) {
+          throw new Error("Invalid state format");
+        }
+        const [timestampStr, randomPart, receivedHmac] = csrfPart.split(".");
+        const expectedHmac = await simpleHmacSign(timestampStr + "." + randomPart, env.BLOG_SESSION_SECRET);
+
+        if (receivedHmac !== expectedHmac) {
+          return new Response("Invalid state signature", { status: 403 });
+        }
+
+        if (Date.now() - Number(timestampStr) > expTimeGap) { // 14 天
+          return new Response("State expired", { status: 403 });
+        }
+
+        const candidate = decodeURIComponent(encodedReturnTo);
+        if (candidate.startsWith("https://youngjaylao.github.io")) {
+          returnTo = candidate;
+        }
+      } catch (e) {
+        returnTo = "https://youngjaylao.github.io/github_blog_src/#/archives";
+      }
+      // 拼接参数（用 & 或 ?）
+      const separator = returnTo.includes('?') ? '&' : '?';
+      const loginParam = `blog_login=success&exp=${Date.now() + expTimeGap}`;
+      const finalUrl = `${returnTo}${separator}${loginParam}`;
+
       const headers = new Headers(corsHeaders);
       headers.set("Set-Cookie", "blog_auth=" + cookieValue +
-        "; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=" + (14*86400));
-
+        "; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=" + (14*86400));
+      headers.set("Location", finalUrl);
+      
       return new Response("Logged in", {
         status: 302,
-        headers: headers.set("Location", "/")
+        headers
       });
     }
+
+
     // ── 3. GraphQL 代理（核心部分） ──
     if (request.method === "POST") {
       try {
