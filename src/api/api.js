@@ -1,10 +1,15 @@
 import Loading from '../components/loading/loading';
 
-const endpoint = 'https://github-blog-proxy.laoyanjie666.workers.dev'; 
+const defaultEndpoint = 'https://github-blog-proxy.laoyanjie666.workers.dev';
 
-const Http = (query = {}, variables = {}, alive = false) => {
+const Http = (query = {}, variables = {}, options = {}) => {
+  const {
+    endpoint = defaultEndpoint,
+    alive = false,
+    credentials = false,
+  } = options;
   return new Promise((resolve, reject) => {
-    fetch(endpoint, {
+    let fetchOptions = {
       method: 'POST',
       headers: {
         // 保持你要求的特定 Content-Type
@@ -13,7 +18,12 @@ const Http = (query = {}, variables = {}, alive = false) => {
       },
       // 这里的 body 依然按你之前的逻辑传 JSON 串
       body: JSON.stringify({ query: query, variables: variables }),
-    })
+    };
+    if (credentials) {
+      fetchOptions.credentials = 'include';
+    }
+
+    fetch(endpoint, fetchOptions)
     .then(function(response) {
       if (!response.ok) {
         throw new Error('Network response was not ok');

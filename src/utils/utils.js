@@ -20,6 +20,30 @@ const getTime = Date.now || function () {
   return new Date().getTime();
 };
 
+
+const checkAuthStatusUtil = () => {
+  let isLoggedIn = false;
+  const stored = localStorage.getItem('blog_logged_in');
+  if (!stored) {
+    return isLoggedIn;
+  }
+
+  try {
+    const data = JSON.parse(stored);
+    
+    if (data.isLoggedIn && Date.now() <= data.exp) {
+      isLoggedIn = true;
+    } else {
+      isLoggedIn = false;
+      localStorage.removeItem('blog_logged_in'); // 过期清理
+    }
+  } catch (e) {
+    isLoggedIn = false;
+    localStorage.removeItem('blog_logged_in');
+  }
+  return isLoggedIn;
+};
+
 const isLightColor = (hex) => {
   const rgb = [parseInt(`0x${hex.substr(0, 2)}`, 16), parseInt(`0x${hex.substr(2, 2)}`, 16), parseInt(`0x${hex.substr(4, 2)}`, 16)];
   const darkness = 1 - (0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255;
@@ -177,5 +201,5 @@ const throttle = (func, wait, options = {}) => {
 };
 
 export {
-  debounce, formatTime, getTime, getZodiac, isLightColor, pageLock, pageUnlock, throttle,
+  debounce, formatTime, checkAuthStatusUtil, getTime, getZodiac, isLightColor, pageLock, pageUnlock, throttle,
 };

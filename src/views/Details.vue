@@ -62,6 +62,25 @@ export default {
     if (id) {
       localStorage.setItem('last_issue_id', id);
     }
+    // ─── 新增：根据路径判断是否私密模式 ───────────────
+    const isPrivate = context.root.$route.path.startsWith('/private/');
+    const currentEndpoint = ref(isPrivate 
+      ? 'https://github-blog-proxy.laoyanjie666.workers.dev/private' 
+      : 'https://github-blog-proxy.laoyanjie666.workers.dev'
+    );
+    const currentRepo = reactive({
+      owner: 'youngjaylao', 
+      name: isPrivate ? 'private_blog' : 'github_blog_src' 
+    });
+
+    // 统一请求包装（私密时带 credentials: 'include'）
+    const fetchGithub = (query, variables = {}, alive = false) => {
+      let fetchOptions = { endpoint: currentEndpoint.value, alive};
+      if (isPrivate) {
+        fetchOptions.credentials = true; // 私密模式需要携带 cookie
+      }
+      return context.root.$http(query, variables, fetchOptions);
+    };
 
     // 核心跳转逻辑：手动计算偏移量跳转
     const scrollToAnchor = (anchorId) => {
@@ -97,7 +116,7 @@ export default {
     const getData = () => {
       context.root.$loading.show('努力为您查询');
       const query = `query {
-          repository(owner: "youngjaylao", name: "github_blog_src") {
+          repository(owner: "${currentRepo.owner}", name: "${currentRepo.name}") {
             issue(number: ${id}) {
               title
               createdAt
@@ -106,7 +125,7 @@ export default {
             }
           }
         }`;
-      context.root.$http(query).then((res) => {
+      fetchGithub(query).then((res) => {
         const { title, createdAt, bodyHTML, labels } = res.repository.issue;
         issue.title = title;
         issue.createdAt = createdAt;
@@ -117,6 +136,10 @@ export default {
     };
 
     const initComment = () => {
+      if (isPrivate) {
+        return;
+      }
+
       const currentId = id || context.root.$route.params.id;
       if (!currentId) return; // 没有 ID 就不初始化评论，防止报错
       const utterances = document.createElement('script');
@@ -140,11 +163,11 @@ export default {
     // 新增跳转方法
     const goToLabelPage = (labelName) => {
       // 方案 A: 如果你想在当前页面跳转
-      context.root.$router.push({ path: '/labels', query: { label: labelName, page: 1 } });
-
-      // 方案 B: 按照你的要求，在新标签页打开
-      // const url = `${window.location.origin}${window.location.pathname}#/labels?label=${encodeURIComponent(labelName)}&page=1`;
-      // window.open(url, '_blank');
+      if (isPrivate) {
+        return; // 私密标签不跳转
+      } else {
+        context.root.$router.push({ path: '/labels', query: { label: labelName, page: 1 } });
+      }
     };
 
     return { 

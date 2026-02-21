@@ -17,6 +17,12 @@ const router = new Router({
       meta: { title: '加载中...' },
     },
     {
+      path: '/private/archives/:id',
+      name: 'privateArchiveDetails',
+      component: () => import(/* webpackChunkName: "archiveDetails" */ './views/Details.vue'),
+      meta: { title: '私密加载中...' },
+    },
+    {
       path: '/labels',
       name: 'labels',
       component: () => import(/* webpackChunkName: "labels" */ './views/Labels.vue'),
