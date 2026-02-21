@@ -5,7 +5,7 @@
         <template v-if="global.mode === 'pc'">
           <div class="navs flex">
             <div class="list flex flex-middle">
-              <router-link class="nav-item flex flex-middle flex-center" :to="nav.path" v-for="(nav, index) in navs" :key="index">
+              <router-link class="nav-item normal-nav-item flex flex-middle flex-center" :to="nav.path" v-for="(nav, index) in navs" :key="index">
                 <span v-text="nav.name"></span>
               </router-link>
               <a class="nav-item flex flex-middle flex-center login-btn" :class="{ 'logged-in': isLoggedIn }" :href="getLoginUrl()">
@@ -47,7 +47,7 @@
               <a class="close flex flex-middle flex-center" href="javascript:;" @click="toggleModal">关闭</a>
             </div>
             <div class="navs flex flex-center flex-middle">
-              <a class="nav-item flex flex-middle flex-center" href="javascript:;" v-for="(nav, index) in navs" :key="index" @click="clickNav(nav.path)">
+              <a class="nav-item normal-nav-item flex flex-middle flex-center" href="javascript:;" v-for="(nav, index) in navs" :key="index" @click="clickNav(nav.path)">
                 <span v-text="nav.name"></span>
               </a>
               <a class="nav-item flex flex-middle flex-center login-btn" :class="{ 'logged-in': isLoggedIn }" :href="getLoginUrl()">
@@ -471,16 +471,19 @@ export default {
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background-color: #f0f0f0;
+        
         transition: all 0.5s;
         color: #555555;
         display: flex; 
-      align-items: center;
-      justify-content: center;
+        align-items: center;
+        justify-content: center;
 
         &:hover {
           background-color: #dfdfdf;
         }
+      }
+      .normal-nav-item {
+        background-color: #f0f0f0;
       }
 
       .list {
@@ -623,7 +626,6 @@ export default {
           width: 40px;
           height: 40px;
           border-radius: 50%;
-          background-color: #f0f0f0;
           transition: all 0.5s;
           color: #555555;
           margin: 8px 4px;
@@ -634,6 +636,9 @@ export default {
           &:active {
             background-color: #dfdfdf;
           }
+        }
+        .normal-nav-item {
+          background-color: #f0f0f0;
         }
       }
     }
@@ -696,7 +701,7 @@ export default {
   }
   /* 添加登录按钮样式 */
   .nav-item.login-btn {
-    background-color: #f0f0f0; /* 灰色 */
+    background-color: #f0f0f0;
     color: #555555;
   }
 
