@@ -11,6 +11,15 @@
               <a class="nav-item flex flex-middle flex-center login-btn" :class="{ 'logged-in': isLoggedIn }" :href="getLoginUrl()">
                 <i class="iconfont"></i> 
               </a>
+              <template v-if="isLoggedIn && showModeToggle">
+                <div 
+                  class="mode-toggle capsule"
+                  :class="{ 'private-mode': blogMode === 'private' }"
+                  @click="toggleBlogMode"
+                >
+                  {{ blogMode === 'public' ? '公开' : '私密' }}
+                </div>
+              </template>
             </div>
           </div>
         </template>
@@ -53,6 +62,15 @@
               <a class="nav-item flex flex-middle flex-center login-btn" :class="{ 'logged-in': isLoggedIn }" :href="getLoginUrl()">
                 <i class="iconfont"></i>
               </a>
+              <template v-if="isLoggedIn && showModeToggle">
+                <div 
+                  class="mode-toggle capsule"
+                  :class="{ 'private-mode': blogMode === 'private' }"
+                  @click="toggleBlogMode"
+                >
+                  {{ blogMode === 'public' ? '公开' : '私密' }}
+                </div>
+              </template>
             </div>
           </div>
         </transition>
@@ -68,24 +86,43 @@
 </template>
 <script>
 import {
-  ref, reactive, watch, onBeforeUnmount, onMounted, nextTick
+  ref, reactive, watch, onBeforeUnmount, onMounted, nextTick, computed, provide, inject
 } from '@vue/composition-api';
 import {
-  debounce, throttle, pageUnlock, pageLock,
+  debounce, throttle, pageUnlock, pageLock, repoConfig
 } from './utils/utils';
 
 export default {
   setup(props, context) {
+    const blogMode = ref(context.root.$route.path.startsWith('/private/') ? 'private' : 'public');   // 'public' 或 'private'
+    const getModePath = (path) => {
+      return repoConfig[blogMode.value].pathPrefix + path;
+    };
+    const currentPathPrefix = computed(() => {
+      return repoConfig[blogMode.value].pathPrefix
+    });
+
+
+    const showModeToggle = computed(() => {
+      const currentName = context.root.$route.name;
+      // 只在这些路由名下显示（基于你的 router/index.js 定义的 name）
+      return ['archives', 'labels', 'privateArchives', 'privateLabels'].includes(currentName);
+    });
+
+
+
     const navs = [{
-      path: '/archives',
+      path: currentPathPrefix.value + '/archives',
       name: '博客',
     }, {
-      path: '/labels',
+      path: currentPathPrefix.value + '/labels',
       name: '标签',
     }, {
       path: '/search',
       name: '搜索',
     }];
+
+
 
     const global = reactive({
       mode: ref(''),
@@ -132,9 +169,31 @@ export default {
         localStorage.removeItem('blog_logged_in');
       }
     };
+    const toggleBlogMode = () => {
+      if (blogMode.value === 'public') {
+        blogMode.value = 'private'
+      } else {
+        blogMode.value = 'public'
+      }
+
+      // 获取当前路径，替换前缀
+      let currentPath = context.root.$route.path;
+      if (blogMode.value === 'private') {
+        if (!currentPath.startsWith('/private')) {
+          currentPath = '/private' + currentPath;
+        }
+      } else {
+        currentPath = currentPath.replace(/^\/private/, '');
+      }
+      context.root.$router.push(currentPath);
+    }
 
 
     onMounted(() => {
+      const saved = localStorage.getItem('blog_mode')
+      if (saved === 'private' && isLoggedIn.value) {
+        blogMode.value = 'private'
+      }
 
       let hash = window.location.hash;
 
@@ -187,6 +246,7 @@ export default {
       global.mode = w > 767 ? 'pc' : 'mobile';
     };
 
+
     const handleResize = debounce(() => {
       setMode();
     }, 200);
@@ -210,6 +270,17 @@ export default {
       },
       { immediate: true }
     );
+    watch(
+      () => context.root.$route.fullPath, // 监听完整路径变化，包含 query
+      (newFullPath, oldFullPath) => {
+        const nowPrivate = newFullPath.startsWith('/private/');
+        blogMode.value = nowPrivate ? 'private' : 'public';
+      }
+    );
+
+    watch(blogMode, (newMode) => {
+      localStorage.setItem('blog_mode', newMode)
+    })
 
     onBeforeUnmount(() => {
       window.removeEventListener('resize', handleResize);
@@ -231,7 +302,7 @@ export default {
     const clickNav = (path) => {
       toggleModal();
       if (context.root.$route.path !== path) {
-        context.root.$router.push(path);
+        context.root.$router.push(getModePath(path));
       }
     };
 
@@ -252,9 +323,13 @@ export default {
       toggleModal,
       backTop,
       isLoggedIn,
-      getLoginUrl
+      getLoginUrl,
+      showModeToggle,
+      blogMode,
+      toggleBlogMode,
     };
   },
+  
 };
 </script>
 <style lang="scss">
@@ -707,5 +782,30 @@ export default {
 
   .nav-item.login-btn.logged-in {
     background-color: #218845; /* 淡绿色，例如 lightgreen */
+  }
+  .mode-toggle.capsule {
+    margin-left: 12px;
+    width: 68px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+    transition: all .25s;
+
+    &.private-mode {
+      background: #e74c3c33;  // 浅红
+      color: #c0392b;
+    }
+    &:not(.private-mode) {
+      background: #2ecc7133;  // 浅绿
+      color: #27ae60;
+    }
+    &:hover {
+      filter: brightness(1.08);
+    }
   }
 </style>

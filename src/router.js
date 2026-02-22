@@ -11,6 +11,11 @@ const router = new Router({
       component: () => import(/* webpackChunkName: "archives" */ './views/Archives.vue'),
     },
     {
+      path: '/private/archives',
+      name: 'privateArchives',
+      component: () => import(/* webpackChunkName: "privateArchives" */ './views/Archives.vue'),
+    },
+    {
       path: '/archives/:id',
       name: 'archiveDetails',
       component: () => import(/* webpackChunkName: "archiveDetails" */ './views/Details.vue'),
@@ -26,6 +31,11 @@ const router = new Router({
       path: '/labels',
       name: 'labels',
       component: () => import(/* webpackChunkName: "labels" */ './views/Labels.vue'),
+    },
+    {
+      path: '/private/labels',
+      name: 'privateLabels',
+      component: () => import(/* webpackChunkName: "privateLabels" */ './views/Labels.vue'),
     },
     {
       path: '/search',

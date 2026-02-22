@@ -19,6 +19,20 @@ const pageUnlock = () => {
 const getTime = Date.now || function () {
   return new Date().getTime();
 };
+const repoConfig = {
+  public: {
+    repo: "github_blog_src",
+    endpoint: "https://github-blog-proxy.laoyanjie666.workers.dev",
+    credentials: false,
+    pathPrefix: ""
+  },
+  private: {
+    repo: "private_blog",
+    endpoint: "https://github-blog-proxy.laoyanjie666.workers.dev/private",
+    credentials: true,
+    pathPrefix: "/private"
+  }
+};
 
 
 const checkAuthStatusUtil = () => {
@@ -43,6 +57,10 @@ const checkAuthStatusUtil = () => {
   }
   return isLoggedIn;
 };
+
+
+
+
 
 const isLightColor = (hex) => {
   const rgb = [parseInt(`0x${hex.substr(0, 2)}`, 16), parseInt(`0x${hex.substr(2, 2)}`, 16), parseInt(`0x${hex.substr(4, 2)}`, 16)];
@@ -201,5 +219,5 @@ const throttle = (func, wait, options = {}) => {
 };
 
 export {
-  debounce, formatTime, checkAuthStatusUtil, getTime, getZodiac, isLightColor, pageLock, pageUnlock, throttle,
+  debounce, repoConfig, formatTime, checkAuthStatusUtil, getTime, getZodiac, isLightColor, pageLock, pageUnlock, throttle,
 };

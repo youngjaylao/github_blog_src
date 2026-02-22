@@ -1,14 +1,15 @@
 import Loading from '../components/loading/loading';
+import { repoConfig } from '../utils/utils';
 
-const defaultEndpoint = 'https://github-blog-proxy.laoyanjie666.workers.dev';
 
 const Http = (query = {}, variables = {}, options = {}) => {
   const {
-    endpoint = defaultEndpoint,
     alive = false,
-    credentials = false,
+    blogModeValue = 'public',
   } = options;
+
   return new Promise((resolve, reject) => {
+    const cfg = repoConfig[blogModeValue];
     let fetchOptions = {
       method: 'POST',
       headers: {
@@ -19,11 +20,11 @@ const Http = (query = {}, variables = {}, options = {}) => {
       // 这里的 body 依然按你之前的逻辑传 JSON 串
       body: JSON.stringify({ query: query, variables: variables }),
     };
-    if (credentials) {
+    if (cfg.credentials) {
       fetchOptions.credentials = 'include';
     }
 
-    fetch(endpoint, fetchOptions)
+    fetch(cfg.endpoint, fetchOptions)
     .then(function(response) {
       if (!response.ok) {
         throw new Error('Network response was not ok');

@@ -49,7 +49,7 @@
 
 <script>
 import { reactive, onMounted, ref, nextTick } from '@vue/composition-api';
-import { isLightColor, formatTime } from '../utils/utils';
+import { isLightColor, formatTime, repoConfig } from '../utils/utils';
 
 export default {
   setup(props, context) {
@@ -57,28 +57,18 @@ export default {
     const toc = ref([]);
     const showMobileToc = ref(false);
     const { id } = context.root.$route.params;
+    const blogModeValue = context.root.$route.path.startsWith('/private/') ? 'private' : 'public';
+
 
     // 在获取到 ID 后立即存入本地存储
     if (id) {
       localStorage.setItem('last_issue_id', id);
     }
     // ─── 新增：根据路径判断是否私密模式 ───────────────
-    const isPrivate = context.root.$route.path.startsWith('/private/');
-    const currentEndpoint = ref(isPrivate 
-      ? 'https://github-blog-proxy.laoyanjie666.workers.dev/private' 
-      : 'https://github-blog-proxy.laoyanjie666.workers.dev'
-    );
-    const currentRepo = reactive({
-      owner: 'youngjaylao', 
-      name: isPrivate ? 'private_blog' : 'github_blog_src' 
-    });
 
     // 统一请求包装（私密时带 credentials: 'include'）
     const fetchGithub = (query, variables = {}, alive = false) => {
-      let fetchOptions = { endpoint: currentEndpoint.value, alive};
-      if (isPrivate) {
-        fetchOptions.credentials = true; // 私密模式需要携带 cookie
-      }
+      let fetchOptions = { alive, blogModeValue };
       return context.root.$http(query, variables, fetchOptions);
     };
 
@@ -115,8 +105,9 @@ export default {
 
     const getData = () => {
       context.root.$loading.show('努力为您查询');
+      const repoName = repoConfig[blogModeValue].repo;
       const query = `query {
-          repository(owner: "${currentRepo.owner}", name: "${currentRepo.name}") {
+          repository(owner: "youngjaylao", name: "${repoName}") {
             issue(number: ${id}) {
               title
               createdAt
@@ -136,7 +127,7 @@ export default {
     };
 
     const initComment = () => {
-      if (isPrivate) {
+      if (blogModeValue === 'private') {
         return;
       }
 
@@ -162,12 +153,7 @@ export default {
 
     // 新增跳转方法
     const goToLabelPage = (labelName) => {
-      // 方案 A: 如果你想在当前页面跳转
-      if (isPrivate) {
-        return; // 私密标签不跳转
-      } else {
-        context.root.$router.push({ path: '/labels', query: { label: labelName, page: 1 } });
-      }
+      context.root.$router.push({ path: '/labels', query: { label: labelName, page: 1 } });
     };
 
     return { 

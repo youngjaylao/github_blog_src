@@ -24,7 +24,7 @@
           <li class="archive flex flex-middle" v-for="archive in archives.list" :key="archive.number">
             <div class="archive-header flex flex-middle">
               <span class="date" v-text="formatTime(archive.createdAt, 'yyyy-MM-dd')"></span>
-              <router-link class="title" :to="`/archives/${archive.number}`" v-text="archive.title" :title="archive.title" target="_blank" rel="noopener noreferrer"></router-link>
+              <router-link class="title" :to="getModePath(`/archives/${archive.number}`)" v-text="archive.title" :title="archive.title" target="_blank" rel="noopener noreferrer"></router-link>
               <div class="others flex-item flex-end flex flex-middle">
                 <i class="iconfont icon-comment"></i>
                 <span v-text="archive.comments.totalCount"></span>
@@ -76,14 +76,18 @@
 
 <script>
 import { ref, reactive, watch, onMounted } from '@vue/composition-api';
-import { isLightColor, formatTime } from '../utils/utils';
+import { isLightColor, formatTime, repoConfig, checkAuthStatusUtil } from '../utils/utils';
 
 export default {
   setup(props, context) {
+    const blogMode = ref(context.root.$route.path.startsWith('/private/') ? 'private' : 'public');
+    const getModePath = (path) => {
+      return repoConfig[blogMode.value].pathPrefix + path;
+    };
     const { $http, $loading } = context.root;
 
     const jumpPage = ref(1);
-    const labelCache = {}; // 核心：缓存每个标签的 cursors, totalCount 等
+    const labelCache = ref({}); // 核心：缓存每个标签的 cursors, totalCount 等
 
     const archives = reactive({
       list: [],
@@ -111,9 +115,9 @@ export default {
         context.root.$router.replace({ query: { ...context.root.$route.query, page: 1 } });
         return;
       }
-
+      const repoName = repoConfig[blogMode.value].repo;
       const query = `query {
-        repository(owner: "youngjaylao", name: "github_blog_src") {
+        repository(owner: "youngjaylao", name: "${repoName}") {
           issues(
             filterBy: {labels: "${archives.label}"}, 
             orderBy: {field: CREATED_AT, direction: DESC}, 
@@ -129,8 +133,8 @@ export default {
           }
         }
       }`;
-
-      $http(query).then((res) => {
+      let fetchOptions = { alive: false, blogModeValue: blogMode.value };
+      $http(query, {}, fetchOptions).then((res) => {
         const { nodes, pageInfo, totalCount } = res.repository.issues;
         
         // 更新当前状态
@@ -144,7 +148,7 @@ export default {
         }
 
         // 同步回缓存对象，这样切换标签能找回进度
-        labelCache[archives.label] = {
+        labelCache.value[archives.label] = {
           cursors: [...archives.cursors],
           totalCount: archives.totalCount,
           totalPages: archives.totalPages
@@ -160,12 +164,14 @@ export default {
     // 获取标签列表
     const getLabels = () => {
       $loading.show('查询标签中...');
+      const repoName = repoConfig[blogMode.value].repo;
       const query = `query {
-        repository(owner: "youngjaylao", name: "github_blog_src") {
+        repository(owner: "youngjaylao", name: "${repoName}") {
           labels(first: 100) { nodes { name, color } }
         }
       }`;
-      $http(query).then((res) => {
+      let fetchOptions = { alive: false, blogModeValue: blogMode.value };
+      $http(query, {}, fetchOptions).then((res) => {
         archives.labels = res.repository.labels.nodes;
         // 如果进入页面时没带标签参数，默认选中第一个
         if (archives.labels.length && !context.root.$route.query.label) {
@@ -173,6 +179,33 @@ export default {
         }
       });
     };
+
+    // --- 路由监听：关键功能 ---
+    watch(
+      () => context.root.$route.fullPath, // 监听完整路径变化，包含 query
+      (newFullPath, oldFullPath) => {
+        const wasPrivate = oldFullPath.startsWith('/private/');
+        const nowPrivate = newFullPath.startsWith('/private/');
+        blogMode.value = nowPrivate ? 'private' : 'public';
+                
+        if (wasPrivate !== nowPrivate) {
+          archives.list = []; // 切换模式时重置列表
+          archives.cursors = [null]; // 切换模式时重置分页指针
+          archives.labels = []; // 切换模式时清空标签列表
+          archives.label = null; // 切换模式时重置当前标签
+          archives.page = 1; // 切换模式时重置页码
+          archives.totalCount = 0;
+          archives.totalPages = 1;
+          archives.loading = false;
+          archives.none = false;
+
+          labelCache.value = {};          
+
+          getLabels();
+          return;
+        }
+      }
+    );
 
     // 关键修复：监听整个 query 对象的变化
     watch(
@@ -186,10 +219,10 @@ export default {
           if (archives.label !== newLabel) {
             archives.label = newLabel;
             // 尝试从缓存恢复
-            if (labelCache[newLabel]) {
-              archives.cursors = labelCache[newLabel].cursors;
-              archives.totalCount = labelCache[newLabel].totalCount;
-              archives.totalPages = labelCache[newLabel].totalPages;
+            if (labelCache.value[newLabel]) {
+              archives.cursors = labelCache.value[newLabel].cursors;
+              archives.totalCount = labelCache.value[newLabel].totalCount;
+              archives.totalPages = labelCache.value[newLabel].totalPages;
             } else {
               // 新标签，重置状态
               archives.cursors = [null];
@@ -222,16 +255,24 @@ export default {
       context.root.$router.push({ query: { ...context.root.$route.query, page: target } });
     };
 
-    const goFirstPage = () => context.root.$router.push({ query: { ...context.root.$route.query, page: 1 } });
+    const goFirstPage = () => {
+      if (archives.page === 1) return;
+      context.root.$router.push({ query: { ...context.root.$route.query, page: 1 } }).catch(() => {});
+    };
     const goLastPage = () => {
+      if (archives.none) return;
       if (archives.cursors.length < archives.totalPages) {
-        alert(`请通过“下一页”加载或使用秘密探测。目前最远：${archives.cursors.length}页`);
+        alert(`请通过“下一页”加载。目前最远：${archives.cursors.length}页`);
       } else {
         context.root.$router.push({ query: { ...context.root.$route.query, page: archives.totalPages } });
+        jumpPage.value = archives.page;
       }
     };
     const goToPage = () => {
-      let target = Math.max(1, Math.min(jumpPage.value, archives.totalPages));
+      let target = Math.floor(jumpPage.value);
+      if (target < 1) target = 1;
+      if (target > archives.totalPages) target = archives.totalPages;
+
       if (target > archives.cursors.length) {
         alert(`目前最远可跳转至 ${archives.cursors.length} 页`);
         jumpPage.value = archives.page;
@@ -243,7 +284,10 @@ export default {
     // 秘密搜集逻辑
     const startSecretTimer = () => {
       if (secret.ready || secret.loading || archives.none) return;
-      secret.timer = setTimeout(() => { secret.ready = true; }, 15000);
+      if (!checkAuthStatusUtil()) {
+        return;
+      }
+      secret.timer = setTimeout(() => { secret.ready = true; }, 1000);
     };
     const clearSecretTimer = () => {
       if (secret.timer) { clearTimeout(secret.timer); secret.timer = null; }
@@ -259,14 +303,20 @@ export default {
           context.root.$router.push({ query: { ...context.root.$route.query, page: archives.totalPages } });
           return;
         }
+        const repoName = repoConfig[blogMode.value].repo;
         const q = `query {
-          repository(owner: "youngjaylao", name: "github_blog_src") {
-            issues(filterBy: {labels: "${archives.label}"}, first: ${archives.pageSize}, after: ${currentCursor ? `"${currentCursor}"` : null}) {
+          repository(owner: "youngjaylao", name: "${repoName}") {
+            issues(filterBy: {labels: "${archives.label}"}, 
+              orderBy: {field: CREATED_AT, direction: DESC},
+              first: ${archives.pageSize}, 
+              after: ${currentCursor ? `"${currentCursor}"` : null}) {
               pageInfo { endCursor }
             }
           }
         }`;
-        $http(q).then(res => {
+        let fetchOptions = { alive: false, blogModeValue: blogMode.value };
+
+        $http(q, {}, fetchOptions).then(res => {
           const { endCursor } = res.repository.issues.pageInfo;
           archives.cursors[currentPage] = endCursor;
           recursiveFetch(currentPage + 1, endCursor);
@@ -282,7 +332,7 @@ export default {
       nextPage: () => changePage(1),
       prevPage: () => changePage(-1),
       goFirstPage, goLastPage, goToPage, changeLabel,
-      startSecretTimer, clearSecretTimer, handleSecretClick, isLightColor
+      startSecretTimer, clearSecretTimer, handleSecretClick, isLightColor, getModePath
     };
   }
 };

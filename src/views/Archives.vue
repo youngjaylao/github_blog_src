@@ -12,7 +12,7 @@
               <span class="date" v-text="formatTime(archive.createdAt, 'yyyy-MM-dd')"></span>
               <router-link 
                 class="title"
-                :to="`/archives/${archive.number}`" 
+                :to="getModePath(`/archives/${archive.number}`)"
                 v-text="archive.title" 
                 :title="archive.title"
                 target="_blank"
@@ -97,11 +97,16 @@
   </div>
 </template>
 <script>
-import { ref, reactive, watch, onMounted } from '@vue/composition-api';
-import { formatTime, getZodiac, isLightColor } from '../utils/utils';
+import { ref, reactive, watch, onMounted, nextTick } from '@vue/composition-api';
+import { checkAuthStatusUtil, formatTime, getZodiac, isLightColor, repoConfig } from '../utils/utils';
 
 export default {
   setup(props, context) {
+    const blogMode = ref(context.root.$route.path.startsWith('/private/') ? 'private' : 'public');
+    const getModePath = (path) => {
+      return repoConfig[blogMode.value].pathPrefix + path;
+    };
+
     const { $route, $router, $http } = context.root;
 
     const root = context.root;
@@ -130,7 +135,7 @@ export default {
       // context.root.$router.push({ path: '/labels', query: { label: labelName, page: 1 } });
 
       // 方案 B: 按照你的要求，在新标签页打开
-      const url = `${window.location.origin}${window.location.pathname}#/labels?label=${encodeURIComponent(labelName)}&page=1`;
+      const url = `${window.location.origin}${window.location.pathname}#${getModePath('/labels')}?label=${encodeURIComponent(labelName)}&page=1`;
       window.open(url, '_blank');
     };
 
@@ -176,8 +181,9 @@ export default {
       archives.loading = true;
 
       const cursor = archives.cursors[page - 1];
+      const repoName = repoConfig[blogMode.value].repo;
       const query = `query {
-        repository(owner: "youngjaylao", name: "github_blog_src") {
+        repository(owner: "youngjaylao", name: "${repoName}") {
           issues(
             orderBy: {field: CREATED_AT, direction: DESC},
             first: ${archives.pageSize},
@@ -199,9 +205,9 @@ export default {
         }
       }`;
 
-
+      let fetchOptions = { alive: false, blogModeValue: blogMode.value };
       // 改回 .then() 模式，避开 async/await 带来的编译难题
-      context.root.$http(query)
+      context.root.$http(query, {}, fetchOptions)
         .then((res) => {
           const { nodes, pageInfo, totalCount} = res.repository.issues;
           // 更新总数和计算总页数
@@ -241,12 +247,31 @@ export default {
     // --- 路由监听：关键功能 ---
     watch(
       () => context.root.$route.fullPath, // 监听完整路径变化，包含 query
-      () => {
+      (newFullPath, oldFullPath) => {
+        // 2. 路径前缀变了（/ → /private 或反之），即使页码没变也要重新加载
+        const wasPrivate = oldFullPath.startsWith('/private/');
+        const nowPrivate = newFullPath.startsWith('/private/');
+        blogMode.value = nowPrivate ? 'private' : 'public';
+
+        if (wasPrivate !== nowPrivate) {
+          archives.page = 1; // 切换模式时重置页码
+          archives.cursors = [null]; // 切换模式时重置分页指针
+          archives.years = []; // 切换模式时清空当前数据
+          archives.totalCount = 0;
+          archives.totalPages = 1;
+          archives.loading = false;
+          archives.none = false;
+          getData();
+          return;
+        }
+
         const queryPage = parseInt(context.root.$route.query.page) || 1;
         if (archives.page !== queryPage) {
           archives.page = queryPage;
           getData(queryPage);
+          return;
         }
+        
       }
     );
 
@@ -269,9 +294,12 @@ export default {
     });
     const startSecretTimer = () => {
       if (secret.ready || secret.loading || archives.none) return;
+      if (!checkAuthStatusUtil()) {
+        return;
+      }
       secret.timer = setTimeout(() => {
         secret.ready = true;
-      }, 15000);
+      }, 1000);
     };
 
     const clearSecretTimer = () => {
@@ -290,9 +318,9 @@ export default {
         $router.push({ query: { ...$route.query, page: archives.totalPages } }).catch(() => {});
         return;
       }
-
+      const repoName = repoConfig[blogMode.value].repo;
       const query = `query {
-        repository(owner: "youngjaylao", name: "github_blog_src") {
+        repository(owner: "youngjaylao", name: "${repoName}") {
           issues(
             orderBy: {field: CREATED_AT, direction: DESC},
             first: ${archives.pageSize},
@@ -302,8 +330,8 @@ export default {
           }
         }
       }`;
-
-      $http(query)
+      let fetchOptions = { alive: false, blogModeValue: blogMode.value };
+      $http(query, {}, fetchOptions)
         .then((res) => {
           const { endCursor } = res.repository.issues.pageInfo;
           archives.cursors[currentPage] = endCursor;
@@ -311,7 +339,6 @@ export default {
           recursiveFetch(currentPage + 1, endCursor);
         })
         .catch((err) => {
-          console.error("Secret path failed:", err);
           secret.loading = false;
           alert("探测中断，请重试");
         });
@@ -330,6 +357,7 @@ export default {
     };
 
     onMounted(() => {
+      blogMode.value = context.root.$route.path.startsWith('/private/') ? 'private' : 'public';
       getData();
     });
 
@@ -349,6 +377,7 @@ export default {
       archives,
       isLightColor,
       goToLabelPage,
+      getModePath,
     };
   },
 };
