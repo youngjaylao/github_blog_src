@@ -136,7 +136,6 @@ export default {
       const utterances = document.createElement('script');
       utterances.type = 'text/javascript';
       utterances.async = true;
-      console.log('issue id:', currentId);
       utterances.setAttribute('issue-number', parseInt(currentId, 10));
       utterances.setAttribute('theme', 'github-light');
       utterances.setAttribute('repo', 'youngjaylao/github_blog_src');

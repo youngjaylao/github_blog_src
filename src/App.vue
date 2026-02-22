@@ -5,9 +5,9 @@
         <template v-if="global.mode === 'pc'">
           <div class="navs flex">
             <div class="list flex flex-middle">
-              <router-link class="nav-item normal-nav-item flex flex-middle flex-center" :to="nav.path" v-for="(nav, index) in navs" :key="index">
+              <a class="nav-item normal-nav-item flex flex-middle flex-center" href="javascript:;" v-for="(nav, index) in navs" :key="index" @click="clickNavPC(nav.path)">
                 <span v-text="nav.name"></span>
-              </router-link>
+              </a>
               <a class="nav-item flex flex-middle flex-center login-btn" :class="{ 'logged-in': isLoggedIn }" :href="getLoginUrl()">
                 <i class="iconfont"></i> 
               </a>
@@ -98,10 +98,6 @@ export default {
     const getModePath = (path) => {
       return repoConfig[blogMode.value].pathPrefix + path;
     };
-    const currentPathPrefix = computed(() => {
-      return repoConfig[blogMode.value].pathPrefix
-    });
-
 
     const showModeToggle = computed(() => {
       const currentName = context.root.$route.name;
@@ -112,10 +108,10 @@ export default {
 
 
     const navs = [{
-      path: currentPathPrefix.value + '/archives',
+      path: '/archives',
       name: '博客',
     }, {
-      path: currentPathPrefix.value + '/labels',
+      path: '/labels',
       name: '标签',
     }, {
       path: '/search',
@@ -149,7 +145,6 @@ export default {
     // 从 localStorage 读状态（供其他地方调用，如 toggleModal）
     const checkAuthStatusFromStorage = () => {
       const stored = localStorage.getItem('blog_logged_in');
-      console.log('Checking auth status from storage, raw value:', stored);
       if (!stored) {
         isLoggedIn.value = false;
         return;
@@ -302,6 +297,19 @@ export default {
     const clickNav = (path) => {
       toggleModal();
       if (context.root.$route.path !== path) {
+        if (path === '/search') {
+          context.root.$router.push(path);
+          return;
+        }
+        context.root.$router.push(getModePath(path));
+      }
+    };
+    const clickNavPC = (path) => {
+      if (context.root.$route.path !== path) {
+        if (path === '/search') {
+          context.root.$router.push(path);
+          return;
+        }
         context.root.$router.push(getModePath(path));
       }
     };
@@ -320,6 +328,7 @@ export default {
       // dynamic
       global,
       clickNav,
+      clickNavPC,
       toggleModal,
       backTop,
       isLoggedIn,

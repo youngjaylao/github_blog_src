@@ -22,7 +22,6 @@ export default {
       // 检查 cookie（复用验证逻辑）
       const cookieHeader = request.headers.get("Cookie") || "";
       let authCookie = null;
-      console.log('1');
 
       var cookies = cookieHeader.split(";");
       for (var i = 0; i < cookies.length; i++) {
@@ -32,13 +31,11 @@ export default {
           break;
         }
       }
-      console.log('2');
       if (authCookie) {
         const parts = authCookie.split(".");
         if (parts.length === 2) {
           const payloadB64 = parts[0];
           const payload = atob(payloadB64);
-          console.log('payload:', payload);
 
           let session;
           try {
@@ -52,7 +49,6 @@ export default {
           }
         }
       }
-      console.log('3');
       return new Response(JSON.stringify({ isAuthorized }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
