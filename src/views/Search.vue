@@ -19,13 +19,13 @@
       <li
         class="archive"
         v-for="archive in archives.list"
-        :key="archive.number"
+        :key="archive.source + '-' + archive.number"
       >
         <div class="archive-header flex flex-middle">
           <span class="date" v-text="formatTime(archive.createdAt, 'yyyy-MM-dd')"></span>
           <router-link
             class="title"
-            :to="`/archives/${archive.number}`"
+            :to="getModePath(archive.source, `/archives/${archive.number}`)"
             :title="archive.title"
             target="_blank"
             rel="noopener noreferrer"
@@ -42,7 +42,7 @@
                 'background-color': `#${label.color}`, 
                 'color': `${isLightColor(label.color) ? '#000000' : '#ffffff'}`
               }"
-              @click="goToLabelPage(label.name)"
+              @click="goToLabelPage(archive.source, label.name)"
             ></div>
           </div>
 
@@ -75,7 +75,7 @@
 </template>
 
 <script>
-import { debounce, formatTime, isLightColor } from '../utils/utils';
+import { debounce, formatTime, isLightColor, checkAuthStatusUtil, repoConfig } from '../utils/utils';
 import { Segment, useDefault } from 'segmentit';
 import { computed } from '@vue/composition-api';
 export default {
@@ -85,19 +85,41 @@ export default {
     return {
       search: '',
       segmentit: null,
-      archives: {
-        list: [],
-        totalCount: 0,
-        cursor: null,
-        loading: false,
-        none: false,
+      isLoggedIn: false,
+
+      // 统一管理多个 repo 的分页和数据
+      sources: {
+        public: {
+          repo: 'github_blog_src',
+          list: [],
+          cursor: null,
+          hasNextPage: true,
+          totalCount: 0,
+          loading: false
+        },
+        private: {
+          repo: 'private_blog',
+          list: [],
+          cursor: null,
+          hasNextPage: true,
+          totalCount: 0,
+          loading: false
+        }
       },
+
+      // 显示给用户的合并结果
+      archives: {
+        list: [],        // 合并后排序的结果
+        loading: false,
+        none: false
+      }
     };
   },
   created() {
     document.title = `搜索 - 漾际资本（YoungJay Capital Ltd.）`;
     this.onInputDebounced = debounce(this.onInput, 300);
     this.segmentit = useDefault(new Segment());
+    this.isLoggedIn = checkAuthStatusUtil();
   },
   computed: {
     searchSegments() {
@@ -106,20 +128,32 @@ export default {
       return this.segmentit.doSegment(this.search, { simple: true })
             .map(word => word.toLowerCase())
             .filter(word => word.trim().length > 0);  // 去掉空串    }
+    },
+    // 实际要搜索的 sources
+    activeSources() {
+      if (this.isLoggedIn) {
+        return ['public', 'private'];
+      }
+      return ['public'];
     }
   },
 
   methods: {
     formatTime,
     isLightColor,
-    goToLabelPage(labelName) {
+    getModePath(blogModeValue, path){
+      return repoConfig[blogModeValue].pathPrefix + path;
+    },
+    goToLabelPage(blogModeValue, labelName) {
       // 方案 A: 如果你想在当前页面跳转
       // context.root.$router.push({ path: '/labels', query: { label: labelName, page: 1 } });
 
       // 方案 B: 按照你的要求，在新标签页打开
-      const url = `${window.location.origin}${window.location.pathname}#/labels?label=${encodeURIComponent(labelName)}&page=1`;
+      const url = `${window.location.origin}${window.location.pathname}#${this.getModePath(blogModeValue, '/labels')}?label=${encodeURIComponent(labelName)}&page=1`;
+      
       window.open(url, '_blank');
     },
+
     
     // 关键词高亮逻辑
     highlight(text) {
@@ -204,99 +238,128 @@ export default {
     },
 
     resetData() {
-      this.archives.cursor = null;
-      this.archives.loading = false;
-      this.archives.none = false;
       this.archives.list = [];
-      this.archives.totalCount = 0;
-    },
+      this.archives.none = false;
+      this.archives.loading = false;
 
+      // 重置每个 source
+      Object.keys(this.sources).forEach(key => {
+        const s = this.sources[key];
+        s.list = [];
+        s.cursor = null;
+        s.hasNextPage = true;
+        s.totalCount = 0;
+      });
+    },
+    // 核心：获取数据（可能并发请求多个 repo）
     getData() {
       if (this.archives.loading) return;
       this.archives.loading = true;
-      const safeSearch = this.search.replace(/"/g, '\\"'); 
-      // 修改点A：不再根据 checkbox 决定是否加引号，直接传给 GitHub
-      // 我们希望 GitHub 返回尽可能多的结果，由前端来通过分词精准过滤
-      const queryKeyword = safeSearch;
-      const query = `query {
-        search(
-          query: "${queryKeyword} repo:youngjaylao/github_blog_src",
-          type: ISSUE,
-          first: 10,
-          after: ${this.archives.cursor}
-        ) {
-          issueCount
-          pageInfo {
-            endCursor
-            hasNextPage
-          }
-          nodes {
-            ... on Issue {
-              createdAt
-              title
-              bodyText
-              number
-              comments(first: null) { totalCount }
-              labels (first: 10) {
-                nodes {
-                  name
-                  color
+
+      const promises = this.activeSources.map(sourceKey => {
+        const source = this.sources[sourceKey];
+        if (!source.hasNextPage) return Promise.resolve({ nodes: [], pageInfo: {}, issueCount: 0 });
+
+        const safeSearch = this.search.replace(/"/g, '\\"');
+        const query = `query {
+          search(
+            query: "${safeSearch} repo:youngjaylao/${source.repo}",
+            type: ISSUE,
+            first: 10,
+            after: ${source.cursor ? `"${source.cursor}"` : null}
+          ) {
+            issueCount
+            pageInfo {
+              endCursor
+              hasNextPage
+            }
+            nodes {
+              ... on Issue {
+                createdAt
+                title
+                bodyText
+                number
+                comments(first: 1) { totalCount }
+                labels (first: 10) {
+                  nodes {
+                    name
+                    color
+                  }
                 }
               }
             }
           }
-        }
-      }`;
+        }`;
 
-      this.$http(query).then((res) => {
-        const { nodes, pageInfo, issueCount } = res.search;
-        console.log(res.search);
+        // 根据仓库类型决定调用方式
+        const options = sourceKey === 'private' ? { blogModeValue: 'private' } : {};
 
+        return this.$http(query, {}, options)
+          .then(res => {
+            const data = res.search || {};
+            let nodes = (data.nodes || []).map(node => ({
+              ...node,
+              labels: node.labels && node.labels.nodes ? node.labels.nodes : [],
+              source: sourceKey   // ← 新增这一行，标记是 public 还是 private
+            }));
 
-        this.archives.loading = false;
-        let formattedNodes = nodes.map(node => ({
-          ...node,
-          labels: node.labels ? node.labels.nodes : []
-        }));
-        // --- 修改点B：引入分词智能过滤 ---
-        if (this.search) {
-          const lowerSearch = this.search.toLowerCase();
-          
-          // 1. 使用 segmentit 进行分词，simple: true 返回纯字符串数组
-          const segments = this.searchSegments;
-          
-          // 2. 过滤：要求文章内容必须包含 分词结果中的每一个词 (AND关系)
-          formattedNodes = formattedNodes.filter(node => {
-            const title = (node.title || '').toLowerCase();
-            const body = (node.bodyText || '').toLowerCase();
-            const content = title + body;
-            
-            // 检查 content 是否包含 segments 里的每一个词
-            return segments.every(word => content.includes(word));
+            // 前端严格过滤（AND 关系）
+            if (this.search.trim()) {
+              const segments = this.searchSegments;
+              nodes = nodes.filter(node => {
+                const title = (node.title || '').toLowerCase();
+                const body = (node.bodyText || '').toLowerCase();
+                const content = title + body;
+                return segments.every(word => content.includes(word));
+              });
+            }
+
+            // 更新该 source 状态
+            source.list = source.list.concat(nodes);
+            source.cursor = (data.pageInfo && data.pageInfo.endCursor) || null;
+            source.hasNextPage = !!(data.pageInfo && data.pageInfo.hasNextPage);
+            source.totalCount = data.issueCount || 0;
+
+            return { nodes, sourceKey };
+          })
+          .catch(err => {
+            console.error(`[${sourceKey}] search error:`, err);
+            source.hasNextPage = false;
+            return { nodes: [], sourceKey };
           });
-        }
-
-
-        this.archives.list = this.archives.list.concat(formattedNodes);
-        this.archives.totalCount = issueCount;
-        this.archives.cursor = pageInfo.endCursor ? `"${pageInfo.endCursor}"` : null;
-
-        // 修改点C：如果当前页过滤完了（没显示任何东西），但 API 还有下一页，自动加载下一页
-        if (formattedNodes.length === 0 && pageInfo.hasNextPage) {
-          this.getData();
-          return;
-        }
-
-        if (!pageInfo.hasNextPage) {
-          this.archives.none = true;
-        }
-
-        document.title = `${this.search} - 搜索 - 漾际资本（YoungJay Capital Ltd.）`;
-      }).catch(err => {
-        console.error(err);
-        this.archives.loading = false;
       });
-    },
+
+      Promise.all(promises)
+        .then(results => {
+          // 合并所有 source 的 list，并按 createdAt 降序
+          let allItems = [];
+          this.activeSources.forEach(key => {
+            allItems = allItems.concat(this.sources[key].list);
+          });
+
+          // 排序（新 → 旧）
+          allItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+          this.archives.list = allItems;
+
+          // 判断是否彻底没有了
+          const anyHasNext = this.activeSources.some(key => this.sources[key].hasNextPage);
+          if (!anyHasNext) {
+            this.archives.none = true;
+          }
+
+          this.archives.loading = false;
+
+          // 重要：本轮合并后仍然是 0 条，但还有下一页 → 自动继续
+          if (this.archives.list.length === 0 && anyHasNext) {
+            this.getData();
+          }
+        })
+        .catch(err => {
+          console.error(err);
+          this.archives.loading = false;
+        });
+    }
   },
 }
 </script>
