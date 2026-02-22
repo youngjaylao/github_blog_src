@@ -833,13 +833,13 @@ export default {
   }
   .mode-toggle.capsule {
     margin-left: 12px;
-    width: 68px;
-    height: 32px;
-    line-height: 32px;
+    width: 84px;
+    height: 40px;
+    line-height: 40px;
     text-align: center;
     border-radius: 999px;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 400;
     cursor: pointer;
     user-select: none;
     transition: all .25s;

@@ -127,7 +127,7 @@ export default {
     // 1. 首页逻辑
     const goFirstPage = () => {
       if (archives.page === 1) return;
-      $router.push({ query: { ...$route.query, page: 1 } }).catch(() => {});
+      context.root.$router.push({ query: { ...context.root.$route.query, page: 1 } }).catch(() => {});
     };
     // 新增跳转方法
     const goToLabelPage = (labelName) => {
@@ -148,7 +148,7 @@ export default {
         jumpPage.value = archives.page;
       } else {
         // 如果已经加载过末页指针
-        $router.push({ query: { ...$route.query, page: archives.totalPages } }).catch(() => {});
+        context.root.$router.push({ query: { ...context.root.$route.query, page: archives.totalPages } }).catch(() => {});
       }
     };
 
@@ -163,7 +163,7 @@ export default {
         return;
       }
 
-      $router.push({ query: { ...$route.query, page: target } }).catch(() => {});
+      context.root.$router.push({ query: { ...context.root.$route.query, page: target } }).catch(() => {});
     };
 
     // 同步页码：当通过路由/按钮翻页时，更新输入框数字
@@ -281,9 +281,9 @@ export default {
       if (step > 0 && archives.none) return;
 
       // 仅仅修改 URL，由上面的 watch 来触发 getData
-      $router.push({
-        path: $route.path,
-        query: { ...$route.query, page: targetPage }
+      context.root.$router.push({
+        path: context.root.$route.path,
+        query: { ...context.root.$route.query, page: targetPage }
       }).catch(err => {});
     };
 
@@ -315,7 +315,7 @@ export default {
     const recursiveFetch = (currentPage, currentCursor) => {
       if (currentPage >= archives.totalPages) {
         secret.loading = false;
-        $router.push({ query: { ...$route.query, page: archives.totalPages } }).catch(() => {});
+        context.root.$router.push({ query: { ...context.root.$route.query, page: archives.totalPages } }).catch(() => {});
         return;
       }
       const repoName = repoConfig[blogMode.value].repo;
