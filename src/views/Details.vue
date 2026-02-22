@@ -150,9 +150,13 @@ export default {
       initComment();
     });
 
+    const getModePath = (path) => {
+      return repoConfig[blogModeValue].pathPrefix + path;
+    };
+
     // 新增跳转方法
     const goToLabelPage = (labelName) => {
-      context.root.$router.push({ path: '/labels', query: { label: labelName, page: 1 } });
+      context.root.$router.push({ path: getModePath('/labels'), query: { label: labelName, page: 1 } });
     };
 
     return { 

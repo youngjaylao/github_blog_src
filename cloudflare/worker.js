@@ -15,45 +15,6 @@ export default {
       return new Response(null, { headers: corsHeaders });
     }
 
-    // ── 4. 认证状态检查 ──
-    if (pathname === "/auth-status" && request.method === "GET") {
-      let isAuthorized = false;
-
-      // 检查 cookie（复用验证逻辑）
-      const cookieHeader = request.headers.get("Cookie") || "";
-      let authCookie = null;
-
-      var cookies = cookieHeader.split(";");
-      for (var i = 0; i < cookies.length; i++) {
-        var cookie = cookies[i].trim();
-        if (cookie.indexOf("blog_auth=") === 0) {
-          authCookie = cookie.substring("blog_auth=".length);
-          break;
-        }
-      }
-      if (authCookie) {
-        const parts = authCookie.split(".");
-        if (parts.length === 2) {
-          const payloadB64 = parts[0];
-          const payload = atob(payloadB64);
-
-          let session;
-          try {
-            session = JSON.parse(payload);
-          } catch (e) {
-            session = null;
-          }
-
-          if (session && session.user === "youngjaylao" && Date.now() <= session.exp) {
-            isAuthorized = true;
-          }
-        }
-      }
-      return new Response(JSON.stringify({ isAuthorized }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" }
-      });
-    }
-
     // ── 1. 登录入口 ──
     if (pathname === "/login") {
       if (request.method !== "GET") {
@@ -177,8 +138,23 @@ export default {
       });
     }
 
+    // 3. 退出登录 ──
+    if (pathname === "/logout") {
+      const deleteCookie =  "blog_auth=deleted; HttpOnly; Secure; SameSite=None; Path=/; Max-Age=0";                         // ← 关键：立即过期
+      const headers = new Headers(corsHeaders);
+      headers.set("Set-Cookie", deleteCookie);
+      return new Response(
+        JSON.stringify({ message: "已退出登录" }), 
+        { 
+          status: 200,
+          headers: headers
+        }
+      );
+    }
 
-    // ── 3. GraphQL 代理（核心部分） ──
+
+
+    // ── 4. GraphQL 代理（核心部分） ──
     if (request.method === "POST") {
       try {
         const bodyText = await request.text();
@@ -305,6 +281,47 @@ export default {
         });
       }
     }
+
+
+    // ── 5. 认证状态检查 ──
+    if (pathname === "/auth-status" && request.method === "GET") {
+      let isAuthorized = false;
+
+      // 检查 cookie（复用验证逻辑）
+      const cookieHeader = request.headers.get("Cookie") || "";
+      let authCookie = null;
+
+      var cookies = cookieHeader.split(";");
+      for (var i = 0; i < cookies.length; i++) {
+        var cookie = cookies[i].trim();
+        if (cookie.indexOf("blog_auth=") === 0) {
+          authCookie = cookie.substring("blog_auth=".length);
+          break;
+        }
+      }
+      if (authCookie) {
+        const parts = authCookie.split(".");
+        if (parts.length === 2) {
+          const payloadB64 = parts[0];
+          const payload = atob(payloadB64);
+
+          let session;
+          try {
+            session = JSON.parse(payload);
+          } catch (e) {
+            session = null;
+          }
+
+          if (session && session.user === "youngjaylao" && Date.now() <= session.exp) {
+            isAuthorized = true;
+          }
+        }
+      }
+      return new Response(JSON.stringify({ isAuthorized }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
 
     // 其他情况
     return new Response("Not found or method not allowed", { status: 404, headers: corsHeaders });

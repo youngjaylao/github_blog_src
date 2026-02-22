@@ -8,7 +8,18 @@
               <a class="nav-item normal-nav-item flex flex-middle flex-center" href="javascript:;" v-for="(nav, index) in navs" :key="index" @click="clickNavPC(nav.path)">
                 <span v-text="nav.name"></span>
               </a>
-              <a class="nav-item flex flex-middle flex-center login-btn" :class="{ 'logged-in': isLoggedIn }" :href="getLoginUrl()">
+              <a 
+                v-if="!isLoggedIn"
+                class="nav-item flex flex-middle flex-center login-btn" 
+                :href="getLoginUrl()">
+                <i class="iconfont"></i> 
+              </a>
+              <a 
+                v-else
+                class="nav-item flex flex-middle flex-center login-btn logged-in"
+                href="javascript:;"
+                @click="logout"
+              >
                 <i class="iconfont"></i> 
               </a>
               <template v-if="isLoggedIn && showModeToggle">
@@ -59,8 +70,16 @@
               <a class="nav-item normal-nav-item flex flex-middle flex-center" href="javascript:;" v-for="(nav, index) in navs" :key="index" @click="clickNav(nav.path)">
                 <span v-text="nav.name"></span>
               </a>
-              <a class="nav-item flex flex-middle flex-center login-btn" :class="{ 'logged-in': isLoggedIn }" :href="getLoginUrl()">
+              <a v-if="!isLoggedIn" class="nav-item flex flex-middle flex-center login-btn" :href="getLoginUrl()">
                 <i class="iconfont"></i>
+              </a>
+              <a 
+                v-else
+                class="nav-item flex flex-middle flex-center login-btn logged-in"
+                href="javascript:;"
+                @click="logout"
+              >
+                <i class="iconfont"></i> 
               </a>
               <template v-if="isLoggedIn && showModeToggle">
                 <div 
@@ -104,6 +123,33 @@ export default {
       // 只在这些路由名下显示（基于你的 router/index.js 定义的 name）
       return ['archives', 'labels', 'privateArchives', 'privateLabels'].includes(currentName);
     });
+    const logout = () => {
+      fetch('https://github-blog-proxy.laoyanjie666.workers.dev/logout', {
+        method: 'GET',           // 或 GET，看你后端怎么写
+        credentials: 'include'
+      })
+        .then(res => {
+          if (res.ok) {
+            // 后端已通过 Set-Cookie 清除了 HttpOnly cookie
+            localStorage.removeItem('blog_logged_in');
+            isLoggedIn.value = false;
+          } else {
+            // 可选：处理非 200 状态码
+            console.warn('退出响应非 200 状态', res.status);
+          }
+          let currentPath = context.root.$route.path;
+          const newPath = currentPath.replace(/^\/private/, '');
+          if (newPath !== currentPath) {
+            context.root.$router.push(newPath);
+          } else {
+            window.location.reload();
+          }
+        })
+        .catch(err => {
+          console.error('退出失败', err);
+          window.location.reload();
+        });
+    };
 
 
 
@@ -185,10 +231,6 @@ export default {
 
 
     onMounted(() => {
-      const saved = localStorage.getItem('blog_mode')
-      if (saved === 'private' && isLoggedIn.value) {
-        blogMode.value = 'private'
-      }
 
       let hash = window.location.hash;
 
@@ -273,10 +315,6 @@ export default {
       }
     );
 
-    watch(blogMode, (newMode) => {
-      localStorage.setItem('blog_mode', newMode)
-    })
-
     onBeforeUnmount(() => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', handleScroll);
@@ -336,6 +374,7 @@ export default {
       showModeToggle,
       blogMode,
       toggleBlogMode,
+      logout,
     };
   },
   
