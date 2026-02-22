@@ -77,6 +77,7 @@
 <script>
 import { debounce, formatTime, isLightColor } from '../utils/utils';
 import { Segment, useDefault } from 'segmentit';
+import { computed } from '@vue/composition-api';
 export default {
   name: 'Search',
 
@@ -96,9 +97,16 @@ export default {
   created() {
     document.title = `搜索 - 漾际资本（YoungJay Capital Ltd.）`;
     this.onInputDebounced = debounce(this.onInput, 300);
-    this.segmentit = new Segment();
-    this.segmentit.use(useDefault);
-    
+    this.segmentit = useDefault(new Segment());
+  },
+  computed: {
+    searchSegments() {
+      if (!this.search.trim()) return [];
+      // 实时分词，返回字符串数组
+      return this.segmentit.doSegment(this.search, { simple: true })
+            .map(word => word.toLowerCase())
+            .filter(word => word.trim().length > 0);  // 去掉空串    }
+    }
   },
 
   methods: {
@@ -116,22 +124,50 @@ export default {
     // 关键词高亮逻辑
     highlight(text) {
       if (!this.search || !text) return text;
-      // 替换特殊字符并创建全局不区分大小写的正则
-      const highlightReg = new RegExp(`(${this.search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-      return text.replace(highlightReg, '<span class="highlight">$1</span>');
+      let result = text;
+
+      // 对 searchSegments 里的每一个词都做高亮（不区分大小写）
+      this.searchSegments.forEach(word => {
+        if (!word) return;
+
+        // 转义正则特殊字符
+        const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const reg = new RegExp(`(${escaped})`, 'gi');
+
+        result = result.replace(reg, match => {
+          // 保留原始大小写，但加上高亮标签
+          return `<span class="highlight">${match}</span>`;
+        });
+      });
+
+      return result;
     },
     // --- 【新增方法】智能截取正文片段并高亮 ---
     getSnippetAndHighlight(text) {
       if (!text) return '';
-      if (!this.search) return text.slice(0, 120); // 没有搜索词时，默认显示前120字
-
+      
+      // 没有搜索词 → 显示前 120 字（不加高亮）
+      if (!this.search.trim()) {
+        return text.slice(0, 120) + (text.length > 120 ? '...' : '');
+      }
       const lowerText = text.toLowerCase();
-      const lowerSearch = this.search.toLowerCase();
-      const index = lowerText.indexOf(lowerSearch);
 
-      // 情况1：关键词不在正文中（可能只在标题里匹配到了），显示文章开头
-      if (index === -1) {
-        return this.highlight(text.slice(0, 120) + (text.length > 120 ? '...' : ''));
+      // 寻找最早出现的任意一个分词
+      let firstMatchIndex = Infinity;
+      let matchedWord = '';
+
+      this.searchSegments.forEach(word => {
+        const idx = lowerText.indexOf(word);
+        if (idx !== -1 && idx < firstMatchIndex) {
+          firstMatchIndex = idx;
+          matchedWord = word;
+        }
+      });
+
+      // 没有任何分词出现在正文 → 显示开头 + 高亮标题里可能匹配的部分
+      if (firstMatchIndex === Infinity) {
+        let snippet = text.slice(0, 120) + (text.length > 120 ? '...' : '');
+        return this.highlight(snippet);
       }
 
       // 情况2：关键词在正文中，需要截取上下文
@@ -139,8 +175,8 @@ export default {
       const beforeCount = 30;
       const afterCount = 90;
       
-      let start = index - beforeCount;
-      let end = index + this.search.length + afterCount;
+      let start = firstMatchIndex - beforeCount;
+      let end   = firstMatchIndex + matchedWord.length + afterCount;
 
       // 边界处理
       if (start < 0) start = 0;
@@ -211,7 +247,6 @@ export default {
           }
         }
       }`;
-      console.log('Executing search query:', query);
 
       this.$http(query).then((res) => {
         const { nodes, pageInfo, issueCount } = res.search;
@@ -228,7 +263,7 @@ export default {
           const lowerSearch = this.search.toLowerCase();
           
           // 1. 使用 segmentit 进行分词，simple: true 返回纯字符串数组
-          const segments = this.segmentit.doSegment(lowerSearch, { simple: true });
+          const segments = this.searchSegments;
           
           // 2. 过滤：要求文章内容必须包含 分词结果中的每一个词 (AND关系)
           formattedNodes = formattedNodes.filter(node => {
@@ -263,7 +298,7 @@ export default {
       });
     },
   },
-};
+}
 </script>
 
 <style lang="scss" scoped>
