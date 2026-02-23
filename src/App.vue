@@ -841,15 +841,14 @@ export default {
   padding: 0 2px;             // 微调文字不贴边
 
   &.private-mode {
-    background: #e74c3c33;    // 浅红
-    color: #c0392b;
+    background: #dfdfdf;    // 浅红
+    color: #555555;
   }
 
   &:not(.private-mode) {
-    background: #2ecc7133;    // 浅绿
-    color: #27ae60;
+    background: #dfdfdf;    // 浅绿
+    color: #555555;
   }
-
   &:hover {
     filter: brightness(1.08);
   }
