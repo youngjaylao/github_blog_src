@@ -593,12 +593,13 @@ export default {
         align-items: center;
         justify-content: center;
 
-        &:hover {
-          background-color: #dfdfdf;
-        }
+
       }
       .normal-nav-item {
         background-color: #f0f0f0;
+        &:hover {
+          background-color: #dfdfdf;
+        }
       }
 
       .list {
@@ -818,10 +819,17 @@ export default {
   .nav-item.login-btn {
     background-color: #f0f0f0;
     color: #555555;
+    &:hover {
+      background-color: #dfdfdf;
+    }
   }
 
   .nav-item.login-btn.logged-in {
-    background-color: #218845; 
+    background-color: #27994fe3; 
+    &:hover {
+      filter: brightness(1.08);
+    }
+    
   }
 .mode-toggle.capsule {
   margin-left: 6px;           // 和 nav-item 之间的间距保持一致（昨天通常是 6px）
@@ -831,7 +839,7 @@ export default {
   text-align: center;
   border-radius: 50%;         // 改成正圆
   font-size: 13px;            // 接近昨天圆形按钮的视觉大小（可调 12px ~ 14px）
-  font-weight: 500;           // 比 400 稍粗一点，更清晰；可改回 400
+  font-weight: 400;           // 比 400 稍粗一点，更清晰；可改回 400
   cursor: pointer;
   user-select: none;
   transition: all .25s;
@@ -841,16 +849,16 @@ export default {
   padding: 0 2px;             // 微调文字不贴边
 
   &.private-mode {
-    background: #dfdfdf;    // 浅红
+    background: #f0f0f0;    // 浅红
     color: #555555;
   }
 
   &:not(.private-mode) {
-    background: #dfdfdf;    // 浅绿
+    background: #f0f0f0;    // 浅绿
     color: #555555;
   }
   &:hover {
-    filter: brightness(1.08);
+    background-color: #dfdfdf;
   }
 
   // 如果觉得文字还是太大或太挤，可以再微调
