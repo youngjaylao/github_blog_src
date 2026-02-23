@@ -335,19 +335,11 @@ export default {
     const clickNav = (path) => {
       toggleModal();
       if (context.root.$route.path !== path) {
-        if (path === '/search') {
-          context.root.$router.push(path);
-          return;
-        }
         context.root.$router.push(getModePath(path));
       }
     };
     const clickNavPC = (path) => {
       if (context.root.$route.path !== path) {
-        if (path === '/search') {
-          context.root.$router.push(path);
-          return;
-        }
         context.root.$router.push(getModePath(path));
       }
     };
